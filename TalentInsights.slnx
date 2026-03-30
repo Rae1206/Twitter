@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="Domain/Domain.csproj" />
   <Project Path="TalentInsights.Application/TalentInsights.Application.csproj" />
   <Project Path="TalentInsights.Shared/TalentInsights.Shared.csproj" />
   <Project Path="TalentInsights.WebApi/TalentInsights.WebApi.csproj" />

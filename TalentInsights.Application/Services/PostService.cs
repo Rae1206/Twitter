@@ -29,7 +29,7 @@ public class PostService(Cache<PostDto> postCache, Cache<UserDto> userCache) : I
         };
 
         postCache.Add(post.PostId.ToString(), post);
-        return ResponseHelper.Create(post);
+        return ResponseHelper.Create(MapWithUserName(post));
     }
 
     public GenericResponse<PostDto> Update(Guid postId, UpdatePostRequest model)
@@ -57,7 +57,7 @@ public class PostService(Cache<PostDto> postCache, Cache<UserDto> userCache) : I
             post.Content = model.Content;
         }
 
-        return ResponseHelper.Create(post);
+        return ResponseHelper.Create(MapWithUserName(post));
     }
 
     public GenericResponse<List<PostDto>> Get(int limit, int offset, Guid? userId, bool? isPublished)
@@ -77,14 +77,18 @@ public class PostService(Cache<PostDto> postCache, Cache<UserDto> userCache) : I
         var normalizedOffset = Math.Max(offset, 0);
         var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
 
-        var result = posts.Skip(normalizedOffset).Take(normalizedLimit).ToList();
+        var result = posts
+            .Skip(normalizedOffset)
+            .Take(normalizedLimit)
+            .Select(MapWithUserName)
+            .ToList();
         return ResponseHelper.Create(result);
     }
 
     public GenericResponse<PostDto?> Get(Guid postId)
     {
         var post = postCache.Get(postId.ToString());
-        return ResponseHelper.Create(post);
+        return ResponseHelper.Create(post is null ? null : MapWithUserName(post));
     }
 
     public GenericResponse<bool> ChangeStatus(Guid postId, ChangePostStatusRequest model)
@@ -111,5 +115,20 @@ public class PostService(Cache<PostDto> postCache, Cache<UserDto> userCache) : I
 
         postCache.Delete(postId.ToString());
         return ResponseHelper.Create(true);
+    }
+
+    private PostDto MapWithUserName(PostDto post)
+    {
+        var user = userCache.Get(post.UserId.ToString());
+
+        return new PostDto
+        {
+            PostId = post.PostId,
+            UserId = post.UserId,
+            UserFullName = user?.FullName ?? "Usuario no encontrado",
+            Content = post.Content,
+            IsPublished = post.IsPublished,
+            CreatedAt = post.CreatedAt
+        };
     }
 }
