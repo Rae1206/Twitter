@@ -1,7 +1,5 @@
-using Application.Interfaces.Services;
-using Application.Models.DTOs;
-using Application.Services;
-using Shared;
+using Application.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,14 +9,9 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-// Services
-builder.Services.AddScoped<ICollaboratorService, CollaboratorService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IPostService, PostService>();
-
-builder.Services.AddSingleton<Cache<CollaboratorDto>>();
-builder.Services.AddSingleton<Cache<UserDto>>();
-builder.Services.AddSingleton<Cache<PostDto>>();
+// Application Layers
+builder.Services.AddRepositories();
+builder.Services.AddServices();
 
 var app = builder.Build();
 

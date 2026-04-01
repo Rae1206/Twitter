@@ -1,14 +1,14 @@
 using Application.Helpers;
+using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Application.Models.DTOs;
 using Application.Models.Requests.User;
 using Application.Models.Responses;
-using Shared;
 using Shared.Helpers;
 
 namespace Application.Services;
 
-public class UserService(Cache<UserDto> cache) : IUserService
+public class UserService(IUserRepository userRepository) : IUserService
 {
     public GenericResponse<UserDto> Create(CreateUserRequest model)
     {
@@ -21,71 +21,71 @@ public class UserService(Cache<UserDto> cache) : IUserService
             CreatedAt = DateTimeHelper.UtcNow()
         };
 
-        cache.Add(user.UserId.ToString(), user);
-
-        return ResponseHelper.Create(user);
+        var created = userRepository.Create(user);
+        return ResponseHelper.Create(created);
     }
 
     public GenericResponse<UserDto> Update(Guid userId, UpdateUserRequest model)
     {
-        var user = cache.Get(userId.ToString());
+        var user = userRepository.GetById(userId);
 
         if (user is null)
         {
             return ResponseHelper.Create(new UserDto(), "Usuario no encontrado");
         }
 
-        if (!string.IsNullOrWhiteSpace(model.FullName))
+        var updatedUser = new UserDto
         {
-            user.FullName = model.FullName;
-        }
+            UserId = user.UserId,
+            FullName = model.FullName ?? user.FullName,
+            Email = model.Email ?? user.Email,
+            IsActive = user.IsActive,
+            CreatedAt = user.CreatedAt
+        };
 
-        if (!string.IsNullOrWhiteSpace(model.Email))
-        {
-            user.Email = model.Email;
-        }
-
-        return ResponseHelper.Create(user);
+        var result = userRepository.Update(userId, updatedUser);
+        return result is null 
+            ? ResponseHelper.Create(new UserDto(), "Error al actualizar") 
+            : ResponseHelper.Create(result);
     }
 
     public GenericResponse<List<UserDto>> Get(int limit, int offset)
     {
-        var users = cache.Get();
-
-        var normalizedOffset = Math.Max(offset, 0);
-        var normalizedLimit = limit <= 0 ? users.Count : limit;
-        var page = users.Skip(normalizedOffset).Take(normalizedLimit).ToList();
-        return ResponseHelper.Create(page);
+        var users = userRepository.GetAll(limit, offset);
+        return ResponseHelper.Create(users);
     }
 
     public GenericResponse<UserDto?> Get(Guid userId)
     {
-        var user = cache.Get(userId.ToString());
+        var user = userRepository.GetById(userId);
         return ResponseHelper.Create(user);
     }
 
     public GenericResponse<bool> ChangePassword(Guid userId, ChangePasswordUserRequest model)
     {
-        var user = cache.Get(userId.ToString());
+        var user = userRepository.GetById(userId);
 
         if (user is null)
         {
             return ResponseHelper.Create(false, "Usuario no encontrado");
         }
 
-        return ResponseHelper.Create(true, "Contraseña actualizada correctamente");
+        var result = userRepository.ChangePassword(userId, model.NewPassword);
+        return result 
+            ? ResponseHelper.Create(true, "Contraseña actualizada correctamente")
+            : ResponseHelper.Create(false, "Error al cambiar contraseña");
     }
 
     public GenericResponse<bool> Delete(Guid userId)
     {
-        var user = cache.Get(userId.ToString());
+        var user = userRepository.GetById(userId);
 
         if (user is null)
         {
             return ResponseHelper.Create(false);
         }
 
-        cache.Delete(userId.ToString());
-        return ResponseHelper.Create(true);
+        var result = userRepository.Delete(userId);
+        return result ? ResponseHelper.Create(true) : ResponseHelper.Create(false);
     }
 }
