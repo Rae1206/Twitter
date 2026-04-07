@@ -20,11 +20,15 @@ try
     builder.Services.AddOpenApi();
     builder.Services.AddApplicationServices();
     builder.Services.AddInfrastructure(builder.Configuration);
+    builder.Services.AddJwtAuthentication(builder.Configuration);
 
     var app = builder.Build();
 
     // Configurar pipeline
     app.ConfigurePipeline();
+
+    // Crear usuario administrador por defecto si no existe
+    app.SeedDefaultAdmin();
 
     app.Run();
 }

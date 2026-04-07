@@ -20,6 +20,7 @@ public static class PipelineExtensions
         // Pipeline de middleware
         app.UseErrorHandler();
         app.UseHttpsRedirection();
+        app.UseAuthentication();
         app.UseAuthorization();
 
         // Endpoints

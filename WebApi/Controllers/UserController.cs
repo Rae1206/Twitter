@@ -1,5 +1,6 @@
 using Application.Interfaces.Services;
 using Application.Models.Requests.User;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
@@ -20,6 +21,7 @@ public class UserController(IUserService userService) : ControllerBase
         return CreatedAtAction(nameof(GetUserById), new { id = user.UserId }, user);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpGet("list")]
     public IActionResult GetAllUsers([FromQuery] GetAllUserRequest model)
     {
