@@ -12,4 +12,6 @@ public class CreatePostRequest
     [MaxLength(500, ErrorMessage = ValidationConstants.MAX_LENGTH)]
     [MinLength(3, ErrorMessage = ValidationConstants.MIN_LENGTH)]
     public string Content { get; set; } = null!;
+
+    public bool? IsPublished { get; set; }
 }

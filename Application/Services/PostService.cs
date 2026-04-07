@@ -1,123 +1,140 @@
-using Application.Helpers;
-using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Application.Models.DTOs;
 using Application.Models.Requests.Post;
 using Application.Models.Responses;
+using Domain.Entities;
+using Domain.Repositories;
+using Microsoft.Extensions.Logging;
+using Shared.Constants;
+using Shared.Exceptions;
 using Shared.Helpers;
 
 namespace Application.Services;
 
-public class PostService(IPostRepository postRepository, IUserRepository userRepository) : IPostService
+public class PostService(
+    IPostRepository postRepository,
+    ILogger<PostService> logger) : IPostService
 {
-    public GenericResponse<PostDto> Create(CreatePostRequest model)
+    public PostDto Create(CreatePostRequest model)
     {
-        var user = userRepository.GetById(model.UserId);
+        logger.LogInformation("Intentando crear post para usuario: {UserId}", model.UserId);
 
-        if (user is null)
-        {
-            return ResponseHelper.Create(new PostDto(), "Usuario no encontrado");
-        }
-
-        var post = new PostDto
+        var entity = new Post
         {
             PostId = Guid.NewGuid(),
             UserId = model.UserId,
             Content = model.Content,
-            IsPublished = true,
+            IsPublished = model.IsPublished ?? false,
             CreatedAt = DateTimeHelper.UtcNow()
         };
 
-        var created = postRepository.Create(post);
-        return ResponseHelper.Create(MapWithUserName(created));
+        var created = postRepository.Create(entity);
+        logger.LogInformation("Post creado exitosamente con ID: {PostId}", created.PostId);
+        return MapToDto(created);
     }
 
-    public GenericResponse<PostDto> Update(Guid postId, UpdatePostRequest model)
+    public PostDto Update(Guid postId, UpdatePostRequest model)
     {
-        var post = postRepository.GetById(postId);
+        logger.LogInformation("Intentando actualizar post con ID: {PostId}", postId);
 
-        if (post is null)
+        var existing = postRepository.GetById(postId);
+
+        if (existing is null)
         {
-            return ResponseHelper.Create(new PostDto(), "Post no encontrado");
+            logger.LogWarning("Post no encontrado para actualizar: {PostId}", postId);
+            throw new ResourceNotFoundException("post", postId);
         }
 
-        if (model.UserId.HasValue)
+        var updated = new Post
         {
-            var user = userRepository.GetById(model.UserId.Value);
-            if (user is null)
-            {
-                return ResponseHelper.Create(new PostDto(), "Usuario no encontrado");
-            }
-        }
-
-        var updatedPost = new PostDto
-        {
-            PostId = post.PostId,
-            UserId = model.UserId ?? post.UserId,
-            Content = model.Content ?? post.Content,
-            IsPublished = post.IsPublished,
-            CreatedAt = post.CreatedAt
+            PostId = existing.PostId,
+            UserId = model.UserId ?? existing.UserId,
+            Content = model.Content ?? existing.Content,
+            IsPublished = existing.IsPublished,
+            CreatedAt = existing.CreatedAt
         };
 
-        var result = postRepository.Update(postId, updatedPost);
-        return result is null 
-            ? ResponseHelper.Create(new PostDto(), "Error al actualizar")
-            : ResponseHelper.Create(MapWithUserName(result));
-    }
+        var result = postRepository.Update(postId, updated);
 
-    public GenericResponse<List<PostDto>> Get(int limit, int offset, Guid? userId, bool? isPublished)
-    {
-        var posts = postRepository.GetAll(limit, offset, userId, isPublished);
-        var result = posts.Select(MapWithUserName).ToList();
-        return ResponseHelper.Create(result);
-    }
-
-    public GenericResponse<PostDto?> Get(Guid postId)
-    {
-        var post = postRepository.GetById(postId);
-        return ResponseHelper.Create(post is null ? null : MapWithUserName(post));
-    }
-
-    public GenericResponse<bool> ChangeStatus(Guid postId, ChangePostStatusRequest model)
-    {
-        var post = postRepository.GetById(postId);
-
-        if (post is null)
+        if (result is null)
         {
-            return ResponseHelper.Create(false, "Post no encontrado");
+            logger.LogError("Error al actualizar post con ID: {PostId}", postId);
+            throw new InvalidOperationException(ErrorConstants.INTERNAL_SERVER_ERROR);
         }
 
-        var result = postRepository.ChangeStatus(postId, model.IsPublished);
-        return result 
-            ? ResponseHelper.Create(true, "Estado del post actualizado correctamente")
-            : ResponseHelper.Create(false, "Error al cambiar estado");
+        logger.LogInformation("Post actualizado exitosamente con ID: {PostId}", result.PostId);
+        return MapToDto(result);
     }
 
-    public GenericResponse<bool> Delete(Guid postId)
+    public GenericResponse<List<PostDto>> Get(int limit, int offset, Guid? userId = null, bool? isPublished = null)
     {
+        logger.LogDebug("Obteniendo lista de posts | Limit: {Limit}, Offset: {Offset}, UserId: {UserId}, Publicado: {IsPublished}",
+            limit, offset, userId, isPublished);
+
+        var posts = postRepository.GetAll(limit, offset, userId, isPublished);
+        var dtos = posts.Select(MapToDto).ToList();
+        return new GenericResponse<List<PostDto>> { Data = dtos };
+    }
+
+    public PostDto Get(Guid postId)
+    {
+        logger.LogDebug("Buscando post con ID: {PostId}", postId);
+
         var post = postRepository.GetById(postId);
 
         if (post is null)
         {
-            return ResponseHelper.Create(false);
+            logger.LogWarning("Post no encontrado con ID: {PostId}", postId);
+            throw new ResourceNotFoundException("post", postId);
+        }
+
+        return MapToDto(post);
+    }
+
+    public void ChangeStatus(Guid postId, ChangePostStatusRequest model)
+    {
+        logger.LogInformation("Intentando cambiar estado del post con ID: {PostId}", postId);
+
+        var result = postRepository.ChangeStatus(postId, model.IsPublished);
+
+        if (!result)
+        {
+            logger.LogError("Error al cambiar estado del post con ID: {PostId}", postId);
+            throw new InvalidOperationException("No se pudo cambiar el estado del post");
+        }
+
+        logger.LogInformation("Estado del post cambiado exitosamente con ID: {PostId}", postId);
+    }
+
+    public void Delete(Guid postId)
+    {
+        logger.LogInformation("Intentando eliminar post con ID: {PostId}", postId);
+
+        var post = postRepository.GetById(postId);
+
+        if (post is null)
+        {
+            logger.LogWarning("Post no encontrado para eliminar: {PostId}", postId);
+            throw new ResourceNotFoundException("post", postId);
         }
 
         var result = postRepository.Delete(postId);
-        return result ? ResponseHelper.Create(true) : ResponseHelper.Create(false);
-    }
 
-    private PostDto MapWithUserName(PostDto post)
-    {
-        var user = userRepository.GetById(post.UserId);
-
-        return new PostDto
+        if (!result)
         {
-            PostId = post.PostId,
-            UserId = post.UserId,
-            UserFullName = user?.FullName ?? "Usuario no encontrado",
-            Content = post.Content,
-            IsPublished = post.IsPublished,
-            CreatedAt = post.CreatedAt
-        };
+            logger.LogError("Error al eliminar post con ID: {PostId}", postId);
+            throw new InvalidOperationException("No se pudo eliminar el post");
+        }
+
+        logger.LogInformation("Post eliminado exitosamente con ID: {PostId}", postId);
     }
+
+    private static PostDto MapToDto(Post entity) => new()
+    {
+        PostId = entity.PostId,
+        UserId = entity.UserId,
+        Content = entity.Content,
+        IsPublished = entity.IsPublished,
+        CreatedAt = entity.CreatedAt
+    };
 }

@@ -8,7 +8,7 @@ public class RetweetDto
     public string UserFullName { get; set; } = string.Empty;
     public string? UserAvatar { get; set; }
     public string? Username { get; set; }
-    public string? Comment { get; set; }  // Quote retweet
+    public string? Comment { get; set; }  // Retweet con cita
     public int LikesCount { get; set; }
     public DateTime CreatedAt { get; set; }
 }

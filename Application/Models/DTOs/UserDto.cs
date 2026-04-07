@@ -6,9 +6,11 @@ public class UserDto
     public string Username { get; set; } = null!;
     public string FullName { get; set; } = null!;
     public string Email { get; set; } = null!;
+    public string? PasswordHash { get; set; }
     public string? Avatar { get; set; }
     public string? Bio { get; set; }
     public bool IsActive { get; set; }
+    public string Role { get; set; } = "User";
     public bool IsVerified { get; set; }
     public int FollowersCount { get; set; }
     public int FollowingCount { get; set; }

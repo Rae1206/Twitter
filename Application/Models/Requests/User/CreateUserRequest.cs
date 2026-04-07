@@ -15,4 +15,9 @@ public class CreateUserRequest
     [MaxLength(255, ErrorMessage = ValidationConstants.MAX_LENGTH)]
     [MinLength(5, ErrorMessage = ValidationConstants.MIN_LENGTH)]
     public string Email { get; set; } = null!;
+
+    [Required(ErrorMessage = ValidationConstants.REQUIRED)]
+    [MinLength(8, ErrorMessage = ValidationConstants.MIN_LENGTH)]
+    [MaxLength(100, ErrorMessage = ValidationConstants.MAX_LENGTH)]
+    public string Password { get; set; } = null!;
 }

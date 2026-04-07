@@ -1,8 +1,6 @@
 using Application.Interfaces.Services;
-using Application.Models.DTOs;
 using Application.Services;
 using Microsoft.Extensions.DependencyInjection;
-using Shared;
 
 namespace Application;
 
@@ -10,13 +8,10 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        // Services
+        // Servicios
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPostService, PostService>();
-
-        // Caches
-        services.AddSingleton<Cache<UserDto>>();
-        services.AddSingleton<Cache<PostDto>>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }

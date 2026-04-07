@@ -6,10 +6,10 @@ namespace Application.Interfaces.Services;
 
 public interface IUserService
 {
-    GenericResponse<UserDto> Create(CreateUserRequest model);
-    GenericResponse<UserDto> Update(Guid userId, UpdateUserRequest model);
-    GenericResponse<List<UserDto>> Get(int limit, int offset);
-    GenericResponse<UserDto?> Get(Guid userId);
-    GenericResponse<bool> ChangePassword(Guid userId, ChangePasswordUserRequest model);
-    GenericResponse<bool> Delete(Guid userId);
+    UserDto Create(CreateUserRequest model);
+    UserDto Update(Guid userId, UpdateUserRequest model);
+    GenericResponse<List<UserDto>> Get(int limit, int offset, string? fullName = null, string? email = null);
+    UserDto Get(Guid userId);
+    void ChangePassword(Guid userId, ChangePasswordUserRequest model);
+    void Delete(Guid userId);
 }

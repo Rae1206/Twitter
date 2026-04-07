@@ -1,91 +1,159 @@
-using Application.Helpers;
-using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Application.Models.DTOs;
 using Application.Models.Requests.User;
 using Application.Models.Responses;
+using Domain.Entities;
+using Domain.Repositories;
+using Microsoft.Extensions.Logging;
+using Shared.Constants;
+using Shared.Exceptions;
 using Shared.Helpers;
 
 namespace Application.Services;
 
-public class UserService(IUserRepository userRepository) : IUserService
+public class UserService(
+    IUserRepository userRepository,
+    ILogger<UserService> logger) : IUserService
 {
-    public GenericResponse<UserDto> Create(CreateUserRequest model)
+    public UserDto Create(CreateUserRequest model)
     {
-        var user = new UserDto
+        logger.LogInformation("Intentando crear usuario con email: {Email}", model.Email);
+
+        if (userRepository.ExistsByEmail(model.Email))
+        {
+            logger.LogWarning("Intento de registro con email duplicado: {Email}", model.Email);
+            throw new AlreadyExistsException("usuario", "email", model.Email);
+        }
+
+        var entity = new User
         {
             UserId = Guid.NewGuid(),
             FullName = model.FullName,
             Email = model.Email,
+            PasswordHash = model.Password,
             IsActive = true,
+            Role = RoleConstants.DefaultRole,
             CreatedAt = DateTimeHelper.UtcNow()
         };
 
-        var created = userRepository.Create(user);
-        return ResponseHelper.Create(created);
+        var created = userRepository.Create(entity);
+        logger.LogInformation("Usuario creado exitosamente con ID: {UserId}", created.UserId);
+        return MapToDto(created);
     }
 
-    public GenericResponse<UserDto> Update(Guid userId, UpdateUserRequest model)
+    public UserDto Update(Guid userId, UpdateUserRequest model)
     {
-        var user = userRepository.GetById(userId);
+        logger.LogInformation("Intentando actualizar usuario con ID: {UserId}", userId);
 
-        if (user is null)
+        var existing = userRepository.GetById(userId);
+
+        if (existing is null)
         {
-            return ResponseHelper.Create(new UserDto(), "Usuario no encontrado");
+            logger.LogWarning("Usuario no encontrado para actualizar: {UserId}", userId);
+            throw new ResourceNotFoundException("usuario", userId);
         }
 
-        var updatedUser = new UserDto
+        var updated = new User
         {
-            UserId = user.UserId,
-            FullName = model.FullName ?? user.FullName,
-            Email = model.Email ?? user.Email,
-            IsActive = user.IsActive,
-            CreatedAt = user.CreatedAt
+            UserId = existing.UserId,
+            FullName = model.FullName ?? existing.FullName,
+            Email = model.Email ?? existing.Email,
+            IsActive = existing.IsActive,
+            Role = existing.Role,
+            PasswordHash = existing.PasswordHash,
+            CreatedAt = existing.CreatedAt
         };
 
-        var result = userRepository.Update(userId, updatedUser);
-        return result is null 
-            ? ResponseHelper.Create(new UserDto(), "Error al actualizar") 
-            : ResponseHelper.Create(result);
+        var result = userRepository.Update(userId, updated);
+
+        if (result is null)
+        {
+            logger.LogError("Error al actualizar usuario con ID: {UserId}", userId);
+            throw new InvalidOperationException(ErrorConstants.INTERNAL_SERVER_ERROR);
+        }
+
+        logger.LogInformation("Usuario actualizado exitosamente con ID: {UserId}", result.UserId);
+        return MapToDto(result);
     }
 
-    public GenericResponse<List<UserDto>> Get(int limit, int offset)
+    public GenericResponse<List<UserDto>> Get(int limit, int offset, string? fullName = null, string? email = null)
     {
-        var users = userRepository.GetAll(limit, offset);
-        return ResponseHelper.Create(users);
+        logger.LogDebug("Obteniendo lista de usuarios | Limit: {Limit}, Offset: {Offset}, Nombre: {FullName}, Email: {Email}",
+            limit, offset, fullName, email);
+
+        var users = userRepository.GetAll(limit, offset, fullName, email);
+        var dtos = users.Select(MapToDto).ToList();
+        return new GenericResponse<List<UserDto>> { Data = dtos };
     }
 
-    public GenericResponse<UserDto?> Get(Guid userId)
+    public UserDto Get(Guid userId)
     {
-        var user = userRepository.GetById(userId);
-        return ResponseHelper.Create(user);
-    }
+        logger.LogDebug("Buscando usuario con ID: {UserId}", userId);
 
-    public GenericResponse<bool> ChangePassword(Guid userId, ChangePasswordUserRequest model)
-    {
         var user = userRepository.GetById(userId);
 
         if (user is null)
         {
-            return ResponseHelper.Create(false, "Usuario no encontrado");
+            logger.LogWarning("Usuario no encontrado con ID: {UserId}", userId);
+            throw new ResourceNotFoundException("usuario", userId);
+        }
+
+        return MapToDto(user);
+    }
+
+    public void ChangePassword(Guid userId, ChangePasswordUserRequest model)
+    {
+        logger.LogInformation("Intentando cambiar contraseña del usuario con ID: {UserId}", userId);
+
+        var user = userRepository.GetById(userId);
+
+        if (user is null)
+        {
+            logger.LogWarning("Usuario no encontrado para cambio de contraseña: {UserId}", userId);
+            throw new ResourceNotFoundException("usuario", userId);
         }
 
         var result = userRepository.ChangePassword(userId, model.NewPassword);
-        return result 
-            ? ResponseHelper.Create(true, "Contraseña actualizada correctamente")
-            : ResponseHelper.Create(false, "Error al cambiar contraseña");
+
+        if (!result)
+        {
+            logger.LogError("Error al cambiar contraseña del usuario con ID: {UserId}", userId);
+            throw new InvalidOperationException("No se pudo cambiar la contraseña");
+        }
+
+        logger.LogInformation("Contraseña cambiada exitosamente para usuario con ID: {UserId}", userId);
     }
 
-    public GenericResponse<bool> Delete(Guid userId)
+    public void Delete(Guid userId)
     {
+        logger.LogInformation("Intentando eliminar usuario con ID: {UserId}", userId);
+
         var user = userRepository.GetById(userId);
 
         if (user is null)
         {
-            return ResponseHelper.Create(false);
+            logger.LogWarning("Usuario no encontrado para eliminar: {UserId}", userId);
+            throw new ResourceNotFoundException("usuario", userId);
         }
 
         var result = userRepository.Delete(userId);
-        return result ? ResponseHelper.Create(true) : ResponseHelper.Create(false);
+
+        if (!result)
+        {
+            logger.LogError("Error al eliminar usuario con ID: {UserId}", userId);
+            throw new InvalidOperationException("No se pudo eliminar el usuario");
+        }
+
+        logger.LogInformation("Usuario eliminado exitosamente con ID: {UserId}", userId);
     }
+
+    private static UserDto MapToDto(User entity) => new()
+    {
+        UserId = entity.UserId,
+        FullName = entity.FullName,
+        Email = entity.Email,
+        IsActive = entity.IsActive,
+        Role = entity.Role,
+        CreatedAt = entity.CreatedAt
+    };
 }
