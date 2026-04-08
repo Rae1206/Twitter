@@ -1,22 +1,25 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using JwtCfg = Shared.Constants;
+using Shared.Configuration;
 
 namespace Shared.Helpers;
 
+/// <summary>
+/// Helper estático para generar tokens JWT usando TokenConfiguration.
+/// </summary>
 public static class TokenHelper
 {
+    /// <summary>
+    /// Genera un token JWT usando la configuración proporcionada.
+    /// </summary>
     public static string GenerateJwtToken(
         Guid userId,
         string fullName,
         string role,
-        string secretKey)
+        TokenConfiguration config)
     {
-        var key = Encoding.UTF8.GetBytes(secretKey);
-        var expiresAt = DateTime.UtcNow.AddMinutes(JwtCfg.JwtConstants.ExpirationMinutes);
-
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
@@ -29,15 +32,33 @@ public static class TokenHelper
         };
 
         var token = new JwtSecurityToken(
-            issuer: JwtCfg.JwtConstants.Issuer,
-            audience: JwtCfg.JwtConstants.Audience,
+            issuer: config.Issuer,
+            audience: config.Audience,
             claims: claims,
-            expires: expiresAt,
+            expires: config.GetExpirationDate(),
             signingCredentials: new SigningCredentials(
-                new SymmetricSecurityKey(key),
+                config.GetSecurityKey(),
                 SecurityAlgorithms.HmacSha256)
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    /// <summary>
+    /// Carga la configuración de tokens desde IConfiguration.
+    /// Busca en la sección "Jwt".
+    /// </summary>
+    public static TokenConfiguration LoadFromConfiguration(IConfiguration configuration)
+    {
+        var config = new TokenConfiguration();
+        configuration.GetSection(TokenConfiguration.SectionName).Bind(config);
+
+        if (string.IsNullOrEmpty(config.SecretKey))
+        {
+            throw new InvalidOperationException(
+                "El JWT SecretKey no está configurado en la sección 'Jwt:SecretKey'");
+        }
+
+        return config;
     }
 }

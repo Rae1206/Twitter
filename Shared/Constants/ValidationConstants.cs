@@ -1,7 +1,7 @@
 namespace Shared.Constants;
 
 /// <summary>
-/// Constantes de validación reutilizables en español.
+/// Constantes de validación 
 /// </summary>
 public static class ValidationConstants
 {

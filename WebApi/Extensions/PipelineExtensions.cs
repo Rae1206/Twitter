@@ -14,6 +14,7 @@ public static class PipelineExtensions
             {
                 options.WithTitle("Documentación de Twitter API");
                 options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+                options.Theme = ScalarTheme.Purple;
             });
         }
 

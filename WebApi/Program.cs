@@ -18,6 +18,7 @@ try
     builder.ConfigureSerilog();
     builder.Services.AddControllers();
     builder.Services.AddOpenApi();
+    builder.Services.AddMemoryCache();  // Registra IMemoryCache para el servicio de caché
     builder.Services.AddApplicationServices();
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddJwtAuthentication(builder.Configuration);

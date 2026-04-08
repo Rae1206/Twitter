@@ -1,7 +1,7 @@
 namespace Shared.Constants;
 
 /// <summary>
-/// Constantes de mensajes de error comunes en español.
+/// Constantes de mensajes de error comunes 
 /// </summary>
 public static class ErrorConstants
 {

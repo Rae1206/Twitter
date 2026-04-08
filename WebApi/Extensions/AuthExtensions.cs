@@ -1,22 +1,23 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Shared.Constants;
+using Shared.Configuration;
+using Shared.Helpers;
 
 namespace WebApi.Extensions;
 
 public static class AuthExtensions
 {
+    /// <summary>
+    /// Configura la autenticación JWT usando TokenConfiguration desde IConfiguration.
+    /// </summary>
     public static void AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var secretKey = configuration["Jwt:SecretKey"];
+        // Cargar configuración desde IConfiguration
+        var tokenConfig = TokenHelper.LoadFromConfiguration(configuration);
 
-        if (string.IsNullOrEmpty(secretKey))
-        {
-            throw new InvalidOperationException("La clave secreta JWT no está configurada");
-        }
-
-        var key = Encoding.UTF8.GetBytes(secretKey);
+        // Registrar como servicio inyectable (patrón Options)
+        services.Configure<TokenConfiguration>(
+            configuration.GetSection(TokenConfiguration.SectionName));
 
         services.AddAuthentication(options =>
         {
@@ -31,9 +32,9 @@ public static class AuthExtensions
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuer = JwtConstants.Issuer,
-                ValidAudience = JwtConstants.Audience,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidIssuer = tokenConfig.Issuer,
+                ValidAudience = tokenConfig.Audience,
+                IssuerSigningKey = tokenConfig.GetSecurityKey(),
                 ClockSkew = TimeSpan.Zero
             };
 
