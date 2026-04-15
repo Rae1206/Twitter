@@ -17,7 +17,10 @@ public class PostService(
 {
     public PostDto Create(CreatePostRequest model)
     {
-        logger.LogInformation("Intentando crear post para usuario: {UserId}", model.UserId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Intentando crear post para usuario: {UserId}", model.UserId);
+        }
 
         var entity = new Post
         {
@@ -29,19 +32,28 @@ public class PostService(
         };
 
         var created = postRepository.Create(entity);
-        logger.LogInformation("Post creado exitosamente con ID: {PostId}", created.PostId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Post creado exitosamente con ID: {PostId}", created.PostId);
+        }
         return MapToDto(created);
     }
 
     public PostDto Update(Guid postId, UpdatePostRequest model)
     {
-        logger.LogInformation("Intentando actualizar post con ID: {PostId}", postId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Intentando actualizar post con ID: {PostId}", postId);
+        }
 
         var existing = postRepository.GetById(postId);
 
         if (existing is null)
         {
-            logger.LogWarning("Post no encontrado para actualizar: {PostId}", postId);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Post no encontrado para actualizar: {PostId}", postId);
+            }
             throw new ResourceNotFoundException("post", postId);
         }
 
@@ -62,14 +74,20 @@ public class PostService(
             throw new InvalidOperationException(ErrorConstants.INTERNAL_SERVER_ERROR);
         }
 
-        logger.LogInformation("Post actualizado exitosamente con ID: {PostId}", result.PostId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Post actualizado exitosamente con ID: {PostId}", result.PostId);
+        }
         return MapToDto(result);
     }
 
     public GenericResponse<List<PostDto>> Get(int limit, int offset, Guid? userId = null, bool? isPublished = null)
     {
-        logger.LogDebug("Obteniendo lista de posts | Limit: {Limit}, Offset: {Offset}, UserId: {UserId}, Publicado: {IsPublished}",
-            limit, offset, userId, isPublished);
+        if (logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug("Obteniendo lista de posts | Limit: {Limit}, Offset: {Offset}, UserId: {UserId}, Publicado: {IsPublished}",
+                limit, offset, userId, isPublished);
+        }
 
         var posts = postRepository.GetAll(limit, offset, userId, isPublished);
         var dtos = posts.Select(MapToDto).ToList();
@@ -78,13 +96,19 @@ public class PostService(
 
     public PostDto Get(Guid postId)
     {
-        logger.LogDebug("Buscando post con ID: {PostId}", postId);
+        if (logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug("Buscando post con ID: {PostId}", postId);
+        }
 
         var post = postRepository.GetById(postId);
 
         if (post is null)
         {
-            logger.LogWarning("Post no encontrado con ID: {PostId}", postId);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Post no encontrado con ID: {PostId}", postId);
+            }
             throw new ResourceNotFoundException("post", postId);
         }
 
@@ -93,7 +117,10 @@ public class PostService(
 
     public void ChangeStatus(Guid postId, ChangePostStatusRequest model)
     {
-        logger.LogInformation("Intentando cambiar estado del post con ID: {PostId}", postId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Intentando cambiar estado del post con ID: {PostId}", postId);
+        }
 
         var result = postRepository.ChangeStatus(postId, model.IsPublished);
 
@@ -103,18 +130,27 @@ public class PostService(
             throw new InvalidOperationException("No se pudo cambiar el estado del post");
         }
 
-        logger.LogInformation("Estado del post cambiado exitosamente con ID: {PostId}", postId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Estado del post cambiado exitosamente con ID: {PostId}", postId);
+        }
     }
 
     public void Delete(Guid postId)
     {
-        logger.LogInformation("Intentando eliminar post con ID: {PostId}", postId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Intentando eliminar post con ID: {PostId}", postId);
+        }
 
         var post = postRepository.GetById(postId);
 
         if (post is null)
         {
-            logger.LogWarning("Post no encontrado para eliminar: {PostId}", postId);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Post no encontrado para eliminar: {PostId}", postId);
+            }
             throw new ResourceNotFoundException("post", postId);
         }
 
@@ -126,7 +162,10 @@ public class PostService(
             throw new InvalidOperationException("No se pudo eliminar el post");
         }
 
-        logger.LogInformation("Post eliminado exitosamente con ID: {PostId}", postId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Post eliminado exitosamente con ID: {PostId}", postId);
+        }
     }
 
     private static PostDto MapToDto(Post entity) => new()

@@ -7,7 +7,10 @@ namespace Domain.Repositories;
 public class AuthRepository(TwitterDbContext context) : IAuthRepository
 {
     public User? GetByEmail(string email) =>
-        context.Users.FirstOrDefault(u => u.Email == email);
+        context.Users
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .FirstOrDefault(u => u.Email == email);
 
     public bool VerifyPassword(Guid userId, string password)
     {

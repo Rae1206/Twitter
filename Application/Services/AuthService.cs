@@ -20,6 +20,7 @@ namespace Application.Services;
 public class AuthService(
     IAuthRepository authRepository,
     IUserRepository userRepository,
+    IRoleRepository roleRepository,
     IOptions<TokenConfiguration> tokenOptions,
     ICacheService cacheService,
     ILogger<AuthService> logger) : IAuthService
@@ -28,36 +29,61 @@ public class AuthService(
 
     public LoginResponse Login(LoginUserRequest model)
     {
-        logger.LogInformation("Intento de inicio de sesión con email: {Email}", model.Email);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Intento de inicio de sesión con email: {Email}", model.Email);
+        }
 
         var user = authRepository.GetByEmail(model.Email);
 
         if (user is null)
         {
-            logger.LogWarning("Credenciales inválidas para email: {Email}", model.Email);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Credenciales inválidas para email: {Email}", model.Email);
+            }
             throw new UnauthorizedAccessException(ErrorConstants.INVALID_CREDENTIALS);
         }
 
         if (!user.IsActive)
         {
-            logger.LogWarning("Intento de inicio de sesión con cuenta deshabilitada: {Email}", model.Email);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Intento de inicio de sesión con cuenta deshabilitada: {Email}", model.Email);
+            }
             throw new ForbiddenException(ErrorConstants.ACCOUNT_DISABLED);
         }
 
         if (!authRepository.VerifyPassword(user.UserId, model.Password))
         {
-            logger.LogWarning("Contraseña incorrecta para email: {Email}", model.Email);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Contraseña incorrecta para email: {Email}", model.Email);
+            }
             throw new UnauthorizedAccessException(ErrorConstants.INVALID_CREDENTIALS);
         }
 
+        // Obtener los roles del usuario desde UserRoles
+        var roles = roleRepository.GetRolesByUserId(user.UserId)
+            .Select(r => r.Name)
+            .ToList();
+
+        if (!roles.Any())
+        {
+            roles = new List<string> { RoleConstants.DefaultRole };
+        }
+
         // Crear info de token con tiempo de login
-        var tokenInfo = CreateTokenInfo(user.UserId, user.FullName, user.Role);
+        var tokenInfo = CreateTokenInfo(user.UserId, user.FullName, roles);
 
         // Calcular expiración del JWT (24 horas desde ahora)
         var jwtExpiration = _tokenConfig.GetExpirationDate();
 
-        logger.LogInformation("Inicio de sesión exitoso para usuario: {Email} | ID: {UserId} | Sesión: 24h",
-            model.Email, user.UserId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Inicio de sesión exitoso para usuario: {Email} | ID: {UserId} | Roles: {Roles} | Sesión: 24h",
+                model.Email, user.UserId, string.Join(", ", roles));
+        }
 
         return new LoginResponse
         {
@@ -66,7 +92,7 @@ public class AuthService(
             UserId = user.UserId,
             Email = user.Email,
             FullName = user.FullName,
-            Role = user.Role
+            Roles = roles
         };
     }
 
@@ -84,7 +110,10 @@ public class AuthService(
         if (cachedInfo is null)
         {
             // No hay info en caché - la sesión expiró completamente
-            logger.LogWarning("Sesión expirada o inexistente para usuario: {UserId}", userId);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Sesión expirada o inexistente para usuario: {UserId}", userId);
+            }
             throw new UnauthorizedAccessException("La sesión ha expirado. Por favor, inicie sesión nuevamente.");
         }
 
@@ -94,11 +123,14 @@ public class AuthService(
         {
             // Limpiar caché y rechazar
             cacheService.Remove(cacheKey);
-            logger.LogWarning("Sesión de 24 horas expirada para usuario: {UserId}", userId);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Sesión de 24 horas expirada para usuario: {UserId}", userId);
+            }
             throw new UnauthorizedAccessException("La sesión de 24 horas ha expirado. Por favor, inicie sesión nuevamente.");
         }
 
-        // Verificar si el usuario sigue activo
+        // Verificar si el usuario sigue activo y recargar roles desde BD
         var user = userRepository.GetById(userId);
         if (user is null)
         {
@@ -111,6 +143,19 @@ public class AuthService(
             cacheService.Remove(cacheKey);
             throw new ForbiddenException(ErrorConstants.ACCOUNT_DISABLED);
         }
+
+        // Recargar roles desde la base de datos para tener los más actuales
+        var roles = roleRepository.GetRolesByUserId(userId)
+            .Select(r => r.Name)
+            .ToList();
+
+        if (!roles.Any())
+        {
+            roles = new List<string> { RoleConstants.DefaultRole };
+        }
+
+        // Actualizar los roles en caché
+        cachedInfo.Roles = roles;
 
         // Calcular tiempo restante de la sesión
         var remainingTime = cachedInfo.GetRemainingTime(maxSessionDuration);
@@ -126,8 +171,11 @@ public class AuthService(
         if (string.IsNullOrEmpty(currentToken))
         {
             // El token en caché expiró (pasaron 1-5 minutos) - ROTAR
-            logger.LogInformation("Rotando token para usuario: {UserId} | Tiempo restante de sesión: {Remaining:hh\\:mm\\:ss}",
-                userId, remainingTime);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Rotando token para usuario: {UserId} | Tiempo restante de sesión: {Remaining:hh\\:mm\\:ss}",
+                    userId, remainingTime);
+            }
 
             tokenToReturn = GenerateNewToken(cachedInfo);
             wasRotated = true;
@@ -136,13 +184,19 @@ public class AuthService(
             cachedInfo.CurrentToken = tokenToReturn;
             cachedInfo.LastRotation = DateTime.UtcNow;
 
-            logger.LogDebug("Token rotado. Nuevo token en caché por {CacheMin} minutos", cacheExpiration.TotalMinutes);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Token rotado. Nuevo token en caché por {CacheMin} minutos", cacheExpiration.TotalMinutes);
+            }
         }
         else
         {
             // El token sigue vigente en caché - devolver el mismo
             tokenToReturn = currentToken;
-            logger.LogDebug("Token vigente recuperado del caché para usuario: {UserId}", userId);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("Token vigente recuperado del caché para usuario: {UserId}", userId);
+            }
         }
 
         // Guardar info actualizada en caché (1-5 minutos)
@@ -160,26 +214,29 @@ public class AuthService(
     /// <summary>
     /// Crea la información inicial del token al hacer login.
     /// </summary>
-    private CachedTokenInfo CreateTokenInfo(Guid userId, string fullName, string role)
+    private CachedTokenInfo CreateTokenInfo(Guid userId, string fullName, List<string> roles)
     {
         var tokenInfo = new CachedTokenInfo
         {
             UserId = userId,
             FullName = fullName,
-            Role = role,
+            Roles = roles,
             LoginTime = DateTime.UtcNow,
             LastRotation = DateTime.UtcNow
         };
 
-        // Generar el primer token JWT
-        tokenInfo.CurrentToken = TokenHelper.GenerateJwtToken(userId, fullName, role, _tokenConfig);
+        // Generar el primer token JWT con múltiples roles
+        tokenInfo.CurrentToken = TokenHelper.GenerateJwtToken(userId, fullName, roles, _tokenConfig);
 
         // Guardar en caché con expiración aleatoria inicial
         var cacheExpiration = _tokenConfig.GetRandomCacheExpiration();
         cacheService.Set($"auth_token_info:{userId}", tokenInfo, cacheExpiration);
         cacheService.Set($"auth_token:{userId}", tokenInfo.CurrentToken, cacheExpiration);
 
-        logger.LogDebug("Token info creada y guardada en caché por {Minutes} minutos", cacheExpiration.TotalMinutes);
+        if (logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug("Token info creada y guardada en caché por {Minutes} minutos", cacheExpiration.TotalMinutes);
+        }
 
         return tokenInfo;
     }
@@ -192,7 +249,7 @@ public class AuthService(
         return TokenHelper.GenerateJwtToken(
             cachedInfo.UserId,
             cachedInfo.FullName,
-            cachedInfo.Role,
+            cachedInfo.Roles,
             _tokenConfig);
     }
 
@@ -215,7 +272,7 @@ public class AuthService(
         cacheService.Remove(infoKey);
         var result = cacheService.Remove(tokenKey);
 
-        if (result)
+        if (result && logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Sesión invalidada para usuario: {UserId}", userId);
         }

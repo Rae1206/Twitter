@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Domain.Entities;
@@ -15,9 +15,9 @@ public partial class User
 
     public bool IsActive { get; set; }
 
-    public string Role { get; set; } = "User";
-
     public DateTime CreatedAt { get; set; }
 
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
+
+    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }

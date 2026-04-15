@@ -25,7 +25,11 @@ public class CachedTokenInfo
     /// </summary>
     public Guid UserId { get; set; }
     public string FullName { get; set; } = null!;
-    public string Role { get; set; } = null!;
+    
+    /// <summary>
+    /// Lista de roles del usuario.
+    /// </summary>
+    public List<string> Roles { get; set; } = new();
 
     /// <summary>
     /// Verifica si ya pasaron 24 horas desde el login.

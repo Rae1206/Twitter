@@ -38,8 +38,11 @@ public class CacheService : ICacheService
             _memoryCache.Set(key, value, options);
             _keyTracker.TryAdd(key, true);
             
-            _logger.LogDebug("Valor guardado en caché con clave: {Key}, expiración: {Expiration}s", 
-                key, expiration.TotalSeconds);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Valor guardado en caché con clave: {Key}, expiración: {Expiration}s", 
+                    key, expiration.TotalSeconds);
+            }
             
             return value;
         }
@@ -70,12 +73,18 @@ public class CacheService : ICacheService
             // Intentar obtener del caché primero
             if (_memoryCache.TryGetValue(key, out T? cachedValue) && cachedValue is not null)
             {
-                _logger.LogDebug("Valor recuperado del caché: {Key}", key);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Valor recuperado del caché: {Key}", key);
+                }
                 return cachedValue;
             }
 
             // Si no existe, ejecutar la factory
-            _logger.LogDebug("Valor no encontrado en caché, ejecutando factory: {Key}", key);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Valor no encontrado en caché, ejecutando factory: {Key}", key);
+            }
             var value = factory();
             
             if (value is not null)
@@ -101,11 +110,17 @@ public class CacheService : ICacheService
         {
             if (_memoryCache.TryGetValue(key, out T? value))
             {
-                _logger.LogDebug("Cache HIT: {Key}", key);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Cache HIT: {Key}", key);
+                }
                 return value;
             }
 
-            _logger.LogDebug("Cache MISS: {Key}", key);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Cache MISS: {Key}", key);
+            }
             return default;
         }
         catch (Exception ex)
@@ -165,14 +180,20 @@ public class CacheService : ICacheService
         {
             if (!Exists(key))
             {
-                _logger.LogDebug("Intento de eliminar clave inexistente: {Key}", key);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Intento de eliminar clave inexistente: {Key}", key);
+                }
                 return false;
             }
 
             _memoryCache.Remove(key);
             _keyTracker.TryRemove(key, out _);
             
-            _logger.LogDebug("Clave eliminada del caché: {Key}", key);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Clave eliminada del caché: {Key}", key);
+            }
             return true;
         }
         catch (Exception ex)
@@ -201,8 +222,11 @@ public class CacheService : ICacheService
                     removedCount++;
             }
 
-            _logger.LogInformation("Eliminadas {Count} claves con patrón '{Pattern}'", 
-                removedCount, pattern);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Eliminadas {Count} claves con patrón '{Pattern}'", 
+                    removedCount, pattern);
+            }
             
             return removedCount;
         }
@@ -229,7 +253,10 @@ public class CacheService : ICacheService
                 removedCount++;
             }
 
-            _logger.LogInformation("Caché limpiado. Eliminadas {Count} entradas", removedCount);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Caché limpiado. Eliminadas {Count} entradas", removedCount);
+            }
         }
         catch (Exception ex)
         {
@@ -245,6 +272,9 @@ public class CacheService : ICacheService
         var keyString = key?.ToString() ?? "unknown";
         _keyTracker.TryRemove(keyString, out _);
         
-        _logger.LogDebug("Entrada removida del caché: {Key}, Razón: {Reason}", keyString, reason);
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Entrada removida del caché: {Key}, Razón: {Reason}", keyString, reason);
+        }
     }
 }

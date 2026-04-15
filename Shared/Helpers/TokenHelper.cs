@@ -12,7 +12,7 @@ namespace Shared.Helpers;
 public static class TokenHelper
 {
     /// <summary>
-    /// Genera un token JWT usando la configuración proporcionada.
+    /// Genera un token JWT con un solo rol.
     /// </summary>
     public static string GenerateJwtToken(
         Guid userId,
@@ -20,16 +20,33 @@ public static class TokenHelper
         string role,
         TokenConfiguration config)
     {
-        var claims = new[]
+        return GenerateJwtToken(userId, fullName, new[] { role }, config);
+    }
+
+    /// <summary>
+    /// Genera un token JWT con múltiples roles.
+    /// </summary>
+    public static string GenerateJwtToken(
+        Guid userId,
+        string fullName,
+        IEnumerable<string> roles,
+        TokenConfiguration config)
+    {
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new Claim(JwtRegisteredClaimNames.Name, fullName),
-            new Claim("role", role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat,
                 DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
                 ClaimValueTypes.Integer64)
         };
+
+        // Agregar múltiples roles como claims
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var token = new JwtSecurityToken(
             issuer: config.Issuer,

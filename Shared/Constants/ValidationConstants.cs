@@ -26,4 +26,13 @@ public static class ValidationConstants
     // === Expresiones regulares ===
     public const string USERNAME_PATTERN = @"^[a-zA-Z0-9_]+$";
     public const string EMAIL_PATTERN = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+
+    // === Validación de Roles ===
+    public const string ROLE_REQUIRED = "Debe seleccionar un rol";
+    public const string ROLE_INVALID = "El rol '{0}' no es válido";
+    public const string ROLE_NOT_FOUND = "El rol especificado no existe";
+    public const string ROLE_INACTIVE = "No se puede asignar el rol '{0}' porque está inactivo";
+    public const string USER_ALREADY_HAS_ROLE = "El usuario ya tiene el rol '{0}'";
+    public const string CANNOT_ASSIGN_ADMIN_ROLE = "No tiene permisos para asignar el rol de Administrador";
+    public const string CANNOT_REMOVE_ADMIN_ROLE = "No tiene permisos para remover el rol de Administrador";
 }

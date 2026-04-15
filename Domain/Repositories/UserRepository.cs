@@ -9,19 +9,31 @@ public class UserRepository(TwitterDbContext context) : IUserRepository
     public User Create(User user)
     {
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+        
         context.Users.Add(user);
         context.SaveChanges();
+        
         return user;
     }
 
-    public User? GetById(Guid userId) => context.Users.Find(userId);
+    public User? GetById(Guid userId) => 
+        context.Users
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .FirstOrDefault(u => u.UserId == userId);
 
     public User? GetByEmail(string email) =>
-        context.Users.FirstOrDefault(u => u.Email == email);
+        context.Users
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .FirstOrDefault(u => u.Email == email);
 
     public List<User> GetAll(int limit, int offset, string? fullName = null, string? email = null)
     {
-        var query = context.Users.AsQueryable();
+        var query = context.Users
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(fullName))
             query = query.Where(u => u.FullName.Contains(fullName));
@@ -46,7 +58,6 @@ public class UserRepository(TwitterDbContext context) : IUserRepository
         entity.FullName = user.FullName;
         entity.Email = user.Email;
         entity.IsActive = user.IsActive;
-        entity.Role = user.Role;
 
         context.SaveChanges();
         return entity;
