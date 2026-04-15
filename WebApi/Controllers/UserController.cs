@@ -48,6 +48,7 @@ public class UserController(IUserService userService) : ControllerBase
         return Ok(user);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPatch("{id:guid}/change-password")]
     public IActionResult ChangeUserPassword(Guid id, [FromBody] ChangePasswordUserRequest model)
     {
@@ -60,6 +61,7 @@ public class UserController(IUserService userService) : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}/delete")]
     public IActionResult DeleteUser(Guid id)
     {

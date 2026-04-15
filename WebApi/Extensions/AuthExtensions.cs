@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Shared.Configuration;
@@ -35,22 +36,19 @@ public static class AuthExtensions
                 ValidIssuer = tokenConfig.Issuer,
                 ValidAudience = tokenConfig.Audience,
                 IssuerSigningKey = tokenConfig.GetSecurityKey(),
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.Zero,
+                
+                // Validar roles desde el token
+                RoleClaimType = ClaimTypes.Role,
+                NameClaimType = ClaimTypes.Name
             };
 
             options.Events = new JwtBearerEvents
             {
                 OnTokenValidated = context =>
                 {
-                    var claimsIdentity = context.Principal?.Identity as System.Security.Claims.ClaimsIdentity;
-                    var roleClaim = context.Principal?.FindFirst("role");
-
-                    if (roleClaim != null && claimsIdentity != null)
-                    {
-                        claimsIdentity.AddClaim(new System.Security.Claims.Claim(
-                            System.Security.Claims.ClaimTypes.Role, roleClaim.Value));
-                    }
-
+                    // Los roles ya vienen en el token como ClaimTypes.Role
+                    // No necesitamos hacer nada extra porque TokenHelper los agrega correctamente
                     return Task.CompletedTask;
                 }
             };
