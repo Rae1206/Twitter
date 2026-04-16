@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Shared.Constants;
 using Shared.Exceptions;
 using Shared.Helpers;
+using Shared;
 
 namespace Application.Services;
 
@@ -16,6 +17,7 @@ namespace Application.Services;
 /// </summary>
 public class UserService(
     IUnitOfWork unitOfWork,
+    IEmailService emailService,
     ILogger<UserService> logger) : IUserService
 {
     public async Task<UserDto> Create(CreateUserRequest model)
@@ -36,7 +38,7 @@ public class UserService(
 
         // Obtener el RoleId del rol por defecto (User)
         var defaultRoleId = unitOfWork.roleRepository.GetRoleIdByName(RoleConstants.DefaultRole);
-        
+
         if (!defaultRoleId.HasValue)
         {
             logger.LogError("No se encontró el rol por defecto: {Role}", RoleConstants.DefaultRole);
@@ -65,6 +67,10 @@ public class UserService(
         {
             logger.LogInformation("Usuario creado exitosamente con ID: {UserId}", created.UserId);
         }
+
+        // Enviar email de bienvenida
+        await emailService.SendWelcomeEmailAsync(created.Email, created.FullName);
+
         return MapToDto(created);
     }
 
@@ -179,6 +185,9 @@ public class UserService(
         {
             logger.LogInformation("Contraseña cambiada exitosamente para usuario con ID: {UserId}", userId);
         }
+
+        // Enviar notificación de cambio de contraseña
+        await emailService.SendPasswordChangedNotificationAsync(user.Email, user.FullName);
     }
 
     public async Task Delete(Guid userId)
@@ -220,12 +229,12 @@ public class UserService(
         // TODO: Este método debería usar un repositorio específico para UserRoles
         // Por ahora, dejamos esta lógica manual pero en una implementación real
         // debería estar en Infrastructure.Persistence.Repositories.UserRoleRepository
-        
+
         // Nota: Para implementar esto correctamente, necesitaríamos:
         // 1. Crear IUserRoleRepository con método Create
         // 2. Agregarlo a IUnitOfWork
         // 3. Implementar UserRoleRepository
-        
+
         // Como solución temporal, este método queda vacío y la asignación de roles
         // se manejará en otra migración del patrón UoW
         await Task.CompletedTask;

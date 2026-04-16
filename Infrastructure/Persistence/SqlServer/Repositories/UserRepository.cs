@@ -8,34 +8,32 @@ namespace Infrastructure.Persistence.Repositories;
 /// <summary>
 /// Implementación del repositorio de usuarios.
 /// </summary>
-public class UserRepository(TwitterDbContext context) : IUserRepository
+public class UserRepository : GenericRepository<User, Guid>, IUserRepository
 {
-    public User Create(User user)
+    public UserRepository(TwitterDbContext context) : base(context)
+    {
+    }
+
+    public override User Create(User user)
     {
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
-        
-        context.Users.Add(user);
-        
+        _dbSet.Add(user);
         return user;
     }
 
-    public User? GetById(Guid userId) => 
-        context.Users
-            .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-            .FirstOrDefault(u => u.UserId == userId);
-
-    public User? GetByEmail(string email) =>
-        context.Users
-            .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-            .FirstOrDefault(u => u.Email == email);
-
-    public List<User> GetAll(int limit, int offset, string? fullName = null, string? email = null)
+    public override User? GetById(Guid id)
     {
-        var query = context.Users
+        return _dbSet
             .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefault(u => u.UserId == id);
+    }
+
+    public new List<User> GetAll(int limit, int offset, string? fullName = null, string? email = null)
+    {
+        var query = _dbSet
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(fullName))
@@ -53,9 +51,9 @@ public class UserRepository(TwitterDbContext context) : IUserRepository
             .ToList();
     }
 
-    public User? Update(Guid userId, User user)
+    public override User? Update(Guid id, User user)
     {
-        var entity = context.Users.Find(userId);
+        var entity = _dbSet.Find(id);
         if (entity is null) return null;
 
         entity.FullName = user.FullName;
@@ -65,31 +63,25 @@ public class UserRepository(TwitterDbContext context) : IUserRepository
         return entity;
     }
 
-    public bool Delete(Guid userId)
-    {
-        var entity = context.Users.Find(userId);
-        if (entity is null) return false;
+    public User? GetByEmail(string email) =>
+        _dbSet.Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .FirstOrDefault(u => u.Email == email);
 
-        context.Users.Remove(entity);
-        return true;
-    }
+    public bool ExistsByEmail(string email) => 
+        _dbSet.Any(u => u.Email == email);
 
     public bool ChangePassword(Guid userId, string newPassword)
     {
-        var entity = context.Users.Find(userId);
+        var entity = _dbSet.Find(userId);
         if (entity is null) return false;
 
         entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         return true;
     }
 
-    public bool Exists(Guid userId) => context.Users.Any(u => u.UserId == userId);
-
-    public bool ExistsByEmail(string email) => context.Users.Any(u => u.Email == email);
-
     public bool VerifyPassword(Guid userId, string password)
     {
-        var entity = context.Users.Find(userId);
+        var entity = _dbSet.Find(userId);
         if (entity is null) return false;
 
         return BCrypt.Net.BCrypt.Verify(password, entity.PasswordHash);

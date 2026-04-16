@@ -5,14 +5,14 @@ namespace Twitter.Domain.Interfaces.Repositories;
 /// <summary>
 /// Interfaz del repositorio de usuarios.
 /// </summary>
-public interface IUserRepository
+public interface IUserRepository : IGenericRepository<User, Guid>
 {
-    User Create(User user);
-    User? GetById(Guid userId);
-    User? GetByEmail(string email);
+    // GetAll con filtros adicionales
     List<User> GetAll(int limit, int offset, string? fullName = null, string? email = null);
-    User? Update(Guid userId, User user);
-    bool Delete(Guid userId);
+    
+    // Métodos específicos de User
+    User? GetByEmail(string email);
     bool ExistsByEmail(string email);
     bool ChangePassword(Guid userId, string newPassword);
+    bool VerifyPassword(Guid userId, string password);
 }

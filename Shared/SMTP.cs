@@ -40,8 +40,15 @@ public class SMTP
         using var client = new SmtpClient(host, port)
         {
             Credentials = new NetworkCredential(user, password),
-            EnableSsl = true
+            EnableSsl = true,
+            DeliveryMethod = SmtpDeliveryMethod.Network
         };
+
+        // Puerto 465 usa SSL implícito, puerto 587 usa STARTTLS
+        if (port == 465)
+        {
+            client.EnableSsl = true;
+        }
 
         var mailMessage = new MailMessage
         {

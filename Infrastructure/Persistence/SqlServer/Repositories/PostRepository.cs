@@ -8,20 +8,20 @@ namespace Infrastructure.Persistence.Repositories;
 /// <summary>
 /// Implementación del repositorio de posts.
 /// </summary>
-public class PostRepository(TwitterDbContext context) : IPostRepository
+public class PostRepository : GenericRepository<Post, Guid>, IPostRepository
 {
-    public Post Create(Post post)
+    public PostRepository(TwitterDbContext context) : base(context)
     {
-        context.Posts.Add(post);
-        return post;
     }
 
-    public Post? GetById(Guid postId) =>
-        context.Posts.Include(p => p.User).FirstOrDefault(p => p.PostId == postId);
-
-    public List<Post> GetAll(int limit, int offset, Guid? userId = null, bool? isPublished = null)
+    public override Post? GetById(Guid id)
     {
-        var query = context.Posts.Include(p => p.User).AsQueryable();
+        return _dbSet.Include(p => p.User).FirstOrDefault(p => p.PostId == id);
+    }
+
+    public new List<Post> GetAll(int limit, int offset, Guid? userId = null, bool? isPublished = null)
+    {
+        var query = _dbSet.Include(p => p.User).AsQueryable();
 
         if (userId.HasValue)
             query = query.Where(p => p.UserId == userId.Value);
@@ -38,9 +38,9 @@ public class PostRepository(TwitterDbContext context) : IPostRepository
             .ToList();
     }
 
-    public Post? Update(Guid postId, Post post)
+    public override Post? Update(Guid id, Post post)
     {
-        var entity = context.Posts.Find(postId);
+        var entity = _dbSet.Find(id);
         if (entity is null) return null;
 
         entity.Content = post.Content;
@@ -52,18 +52,9 @@ public class PostRepository(TwitterDbContext context) : IPostRepository
         return entity;
     }
 
-    public bool Delete(Guid postId)
-    {
-        var entity = context.Posts.Find(postId);
-        if (entity is null) return false;
-
-        context.Posts.Remove(entity);
-        return true;
-    }
-
     public bool ChangeStatus(Guid postId, bool isPublished)
     {
-        var entity = context.Posts.Find(postId);
+        var entity = _dbSet.Find(postId);
         if (entity is null) return false;
 
         entity.IsPublished = isPublished;
