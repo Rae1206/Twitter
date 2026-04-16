@@ -10,6 +10,7 @@ using Application.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Shared;
 using Shared.Constants;
 
 namespace WebApi.Extensions;
@@ -54,7 +55,11 @@ public static class ServiceCollectionExtension
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPostService, PostService>();
 
-        // 7. JWT Authentication
+        // 7. Email
+        services.AddSingleton<SMTP>();
+        services.AddScoped<IEmailService, EmailService>();
+
+        // 8. JWT Authentication
         AddJwtAuthentication(services, configuration);
 
         return services;
