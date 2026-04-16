@@ -13,6 +13,7 @@ public static class SeedExtensions
         using var scope = app.Services.CreateScope();
         var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
         var roleRepository = scope.ServiceProvider.GetRequiredService<IRoleRepository>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TwitterDbContext>();
         var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger("Seed");
 
@@ -38,7 +39,6 @@ public static class SeedExtensions
         var adminRoleId = roleRepository.GetRoleIdByName(RoleConstants.Admin);
         if (adminRoleId.HasValue)
         {
-            using var context = new TwitterDbContext();
             var userRole = new UserRole
             {
                 UserRoleId = Guid.NewGuid(),
@@ -47,8 +47,8 @@ public static class SeedExtensions
                 AssignedAt = DateTimeHelper.UtcNow()
             };
             
-            context.UserRoles.Add(userRole);
-            context.SaveChanges();
+            dbContext.UserRoles.Add(userRole);
+            dbContext.SaveChanges();
         }
 
         logger.LogInformation("Usuario administrador creado exitosamente | Email: {Email}", DefaultUserConstants.AdminEmail);
