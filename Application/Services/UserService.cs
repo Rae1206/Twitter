@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Shared.Constants;
 using Shared.Exceptions;
 using Shared.Helpers;
-using Shared;
+using BCrypt.Net;
 
 namespace Application.Services;
 
@@ -27,7 +27,7 @@ public class UserService(
             logger.LogInformation("Intentando crear usuario con email: {Email}", model.Email);
         }
 
-        if (unitOfWork.userRepository.ExistsByEmail(model.Email))
+        if (unitOfWork.Users.ExistsByEmail(model.Email))
         {
             if (logger.IsEnabled(LogLevel.Warning))
             {
@@ -36,8 +36,7 @@ public class UserService(
             throw new AlreadyExistsException("usuario", "email", model.Email);
         }
 
-        // Obtener el RoleId del rol por defecto (User)
-        var defaultRoleId = unitOfWork.roleRepository.GetRoleIdByName(RoleConstants.DefaultRole);
+        var defaultRoleId = unitOfWork.Roles.GetRoleIdByName(RoleConstants.DefaultRole);
 
         if (!defaultRoleId.HasValue)
         {
@@ -50,28 +49,26 @@ public class UserService(
             UserId = Guid.NewGuid(),
             FullName = model.FullName,
             Email = model.Email,
-            PasswordHash = model.Password,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
             IsActive = true,
             CreatedAt = DateTimeHelper.UtcNow()
         };
 
-        var created = unitOfWork.userRepository.Create(entity);
+        unitOfWork.Create(entity);
 
-        // Asignar el rol por defecto en la tabla intermedia
-        await AssignRoleToUser(created.UserId, defaultRoleId.Value);
+        // Asignar el rol por defecto
+        await AssignRoleToUser(entity.UserId, defaultRoleId.Value);
 
-        // Guardar todos los cambios
         await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Usuario creado exitosamente con ID: {UserId}", created.UserId);
+            logger.LogInformation("Usuario creado exitosamente con ID: {UserId}", entity.UserId);
         }
 
-        // Enviar email de bienvenida
-        await emailService.SendWelcomeEmailAsync(created.Email, created.FullName);
+        await emailService.SendWelcomeEmailAsync(entity.Email, entity.FullName);
 
-        return MapToDto(created);
+        return MapToDto(entity);
     }
 
     public async Task<UserDto> Update(Guid userId, UpdateUserRequest model)
@@ -81,7 +78,7 @@ public class UserService(
             logger.LogInformation("Intentando actualizar usuario con ID: {UserId}", userId);
         }
 
-        var existing = unitOfWork.userRepository.GetById(userId);
+        var existing = unitOfWork.Users.GetById(userId);
 
         if (existing is null)
         {
@@ -92,31 +89,17 @@ public class UserService(
             throw new ResourceNotFoundException("usuario", userId);
         }
 
-        var updated = new User
-        {
-            UserId = existing.UserId,
-            FullName = model.FullName ?? existing.FullName,
-            Email = model.Email ?? existing.Email,
-            IsActive = existing.IsActive,
-            PasswordHash = existing.PasswordHash,
-            CreatedAt = existing.CreatedAt
-        };
+        existing.FullName = model.FullName ?? existing.FullName;
+        existing.Email = model.Email ?? existing.Email;
 
-        var result = unitOfWork.userRepository.Update(userId, updated);
-
-        if (result is null)
-        {
-            logger.LogError("Error al actualizar usuario con ID: {UserId}", userId);
-            throw new InvalidOperationException(ErrorConstants.INTERNAL_SERVER_ERROR);
-        }
-
+        unitOfWork.Update(existing);
         await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Usuario actualizado exitosamente con ID: {UserId}", result.UserId);
+            logger.LogInformation("Usuario actualizado exitosamente con ID: {UserId}", userId);
         }
-        return MapToDto(result);
+        return MapToDto(existing);
     }
 
     public GenericResponse<List<UserDto>> Get(int limit, int offset, string? fullName = null, string? email = null)
@@ -127,7 +110,7 @@ public class UserService(
                 limit, offset, fullName, email);
         }
 
-        var users = unitOfWork.userRepository.GetAll(limit, offset, fullName, email);
+        var users = unitOfWork.Users.GetAll(limit, offset, fullName, email);
         var dtos = users.Select(MapToDto).ToList();
         return new GenericResponse<List<UserDto>> { Data = dtos };
     }
@@ -139,7 +122,7 @@ public class UserService(
             logger.LogDebug("Buscando usuario con ID: {UserId}", userId);
         }
 
-        var user = unitOfWork.userRepository.GetById(userId);
+        var user = unitOfWork.Users.GetById(userId);
 
         if (user is null)
         {
@@ -160,7 +143,7 @@ public class UserService(
             logger.LogInformation("Intentando cambiar contraseña del usuario con ID: {UserId}", userId);
         }
 
-        var user = unitOfWork.userRepository.GetById(userId);
+        var user = unitOfWork.Users.GetById(userId);
 
         if (user is null)
         {
@@ -171,14 +154,8 @@ public class UserService(
             throw new ResourceNotFoundException("usuario", userId);
         }
 
-        var result = unitOfWork.userRepository.ChangePassword(userId, model.NewPassword);
-
-        if (!result)
-        {
-            logger.LogError("Error al cambiar contraseña del usuario con ID: {UserId}", userId);
-            throw new InvalidOperationException("No se pudo cambiar la contraseña");
-        }
-
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+        unitOfWork.Update(user);
         await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
@@ -186,7 +163,6 @@ public class UserService(
             logger.LogInformation("Contraseña cambiada exitosamente para usuario con ID: {UserId}", userId);
         }
 
-        // Enviar notificación de cambio de contraseña
         await emailService.SendPasswordChangedNotificationAsync(user.Email, user.FullName);
     }
 
@@ -197,7 +173,7 @@ public class UserService(
             logger.LogInformation("Intentando eliminar usuario con ID: {UserId}", userId);
         }
 
-        var user = unitOfWork.userRepository.GetById(userId);
+        var user = unitOfWork.Users.GetById(userId);
 
         if (user is null)
         {
@@ -208,14 +184,7 @@ public class UserService(
             throw new ResourceNotFoundException("usuario", userId);
         }
 
-        var result = unitOfWork.userRepository.Delete(userId);
-
-        if (!result)
-        {
-            logger.LogError("Error al eliminar usuario con ID: {UserId}", userId);
-            throw new InvalidOperationException("No se pudo eliminar el usuario");
-        }
-
+        unitOfWork.Delete(user);
         await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
@@ -226,17 +195,13 @@ public class UserService(
 
     private async Task AssignRoleToUser(Guid userId, Guid roleId)
     {
-        // TODO: Este método debería usar un repositorio específico para UserRoles
-        // Por ahora, dejamos esta lógica manual pero en una implementación real
-        // debería estar en Infrastructure.Persistence.Repositories.UserRoleRepository
-
-        // Nota: Para implementar esto correctamente, necesitaríamos:
-        // 1. Crear IUserRoleRepository con método Create
-        // 2. Agregarlo a IUnitOfWork
-        // 3. Implementar UserRoleRepository
-
-        // Como solución temporal, este método queda vacío y la asignación de roles
-        // se manejará en otra migración del patrón UoW
+        var userRole = new UserRole
+        {
+            UserId = userId,
+            RoleId = roleId,
+            AssignedAt = DateTimeHelper.UtcNow()
+        };
+        unitOfWork.Create(userRole);
         await Task.CompletedTask;
     }
 

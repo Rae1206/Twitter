@@ -1,12 +1,11 @@
 using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Interfaces.Repositories;
-using System.Linq.Expressions;
 
 namespace Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// Implementación del repositorio de posts.
+/// Repositorio de posts - solo lectura.
 /// </summary>
 public class PostRepository : GenericRepository<Post, Guid>, IPostRepository
 {
@@ -14,38 +13,31 @@ public class PostRepository : GenericRepository<Post, Guid>, IPostRepository
     {
     }
 
-    public override Post? GetById(Guid id) =>
-        GetByField(p => p.PostId == id);
-
     public List<Post> GetAll(int limit, int offset, Guid? userId = null, bool? isPublished = null)
     {
-        Expression<Func<Post, bool>> filter = p => 
-            (userId == null || p.UserId == userId) 
-            && (isPublished == null || p.IsPublished == isPublished);
+        var query = _context.Posts.AsQueryable();
 
-        return base.GetAll(limit, offset, filter);
+        if (userId.HasValue)
+            query = query.Where(p => p.UserId == userId.Value);
+
+        if (isPublished.HasValue)
+            query = query.Where(p => p.IsPublished == isPublished.Value);
+
+        var normalizedOffset = Math.Max(offset, 0);
+        var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
+
+        return query.Skip(normalizedOffset).Take(normalizedLimit).ToList();
     }
 
-    public override Post? Update(Guid id, Post post)
+    public List<Post> GetPostsByUserId(Guid userId, int limit = 0, int offset = 0)
     {
-        var entity = _dbSet.Find(id);
-        if (entity is null) return null;
+        var normalizedOffset = Math.Max(offset, 0);
+        var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
 
-        entity.Content = post.Content;
-        entity.IsPublished = post.IsPublished;
-
-        if (post.UserId != entity.UserId)
-            entity.UserId = post.UserId;
-
-        return entity;
-    }
-
-    public bool ChangeStatus(Guid postId, bool isPublished)
-    {
-        var entity = _dbSet.Find(postId);
-        if (entity is null) return false;
-
-        entity.IsPublished = isPublished;
-        return true;
+        return _context.Posts
+            .Where(p => p.UserId == userId)
+            .Skip(normalizedOffset)
+            .Take(normalizedLimit)
+            .ToList();
     }
 }
