@@ -33,12 +33,14 @@ public class GenericRepository<T, TKey> : IGenericRepository<T, TKey> where T : 
         return _dbSet.Find(id);
     }
 
-    public virtual List<T> GetAll(int limit, int offset)
+    public virtual List<T> GetAll(int limit = 0, int offset = 0, Expression<Func<T, bool>>? filter = null)
     {
+        var query = filter is null ? _dbSet : _dbSet.Where(filter);
+
         var normalizedOffset = Math.Max(offset, 0);
         var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
 
-        return _dbSet
+        return query
             .Skip(normalizedOffset)
             .Take(normalizedLimit)
             .ToList();
@@ -67,6 +69,29 @@ public class GenericRepository<T, TKey> : IGenericRepository<T, TKey> where T : 
     public virtual bool Exists(TKey id)
     {
         return _dbSet.Find(id) is not null;
+    }
+
+    public async Task<bool> IfExists(Expression<Func<T, bool>> expression)
+    {
+        return await _context.Set<T>().AnyAsync(expression);
+    }
+
+    public virtual T? GetByField(Expression<Func<T, bool>> expression)
+    {
+        return _dbSet.FirstOrDefault(expression);
+    }
+
+    public virtual List<T> GetAllByField(Expression<Func<T, bool>> expression, int limit = 0, int offset = 0)
+    {
+        var query = _dbSet.Where(expression);
+        
+        if (offset > 0)
+            query = query.Skip(offset);
+        
+        if (limit > 0)
+            query = query.Take(limit);
+        
+        return query.ToList();
     }
 }
 

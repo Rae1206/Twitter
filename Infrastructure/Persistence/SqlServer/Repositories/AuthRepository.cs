@@ -2,26 +2,32 @@ using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Infrastructure.Persistence.Repositories;
 
 /// <summary>
 /// Implementación del repositorio de autenticación.
 /// </summary>
-public class AuthRepository(TwitterDbContext context) : IAuthRepository
+public class AuthRepository : GenericRepository<User, Guid>, IAuthRepository
 {
-    public User? GetByEmail(string email) =>
-        context.Users
+    public AuthRepository(TwitterDbContext context) : base(context)
+    {
+    }
+
+    public override User? GetByField(Expression<Func<User, bool>> expression) =>
+        _dbSet
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-            .FirstOrDefault(u => u.Email == email);
+            .FirstOrDefault(expression);
 
-    public User? GetById(Guid id) =>
-        context.Users.Find(id);
+    public User? GetByEmail(string email) => GetByField(u => u.Email == email);
+
+    public new User? GetById(Guid id) => GetByField(u => u.UserId == id);
 
     public bool VerifyPassword(Guid userId, string password)
     {
-        var entity = context.Users.Find(userId);
+        var entity = _dbSet.Find(userId);
         if (entity is null) return false;
 
         return BCrypt.Net.BCrypt.Verify(password, entity.PasswordHash);

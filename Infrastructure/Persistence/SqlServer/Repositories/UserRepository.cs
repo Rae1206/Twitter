@@ -2,6 +2,7 @@ using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Infrastructure.Persistence.Repositories;
 
@@ -21,34 +22,29 @@ public class UserRepository : GenericRepository<User, Guid>, IUserRepository
         return user;
     }
 
-    public override User? GetById(Guid id)
+    public override User? GetById(Guid id) =>
+        GetByField(u => u.UserId == id);
+
+    public List<User> GetAll(int limit, int offset, string? fullName = null, string? email = null)
     {
-        return _dbSet
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .FirstOrDefault(u => u.UserId == id);
-    }
+        Expression<Func<User, bool>>? filter = null;
 
-    public new List<User> GetAll(int limit, int offset, string? fullName = null, string? email = null)
-    {
-        var query = _dbSet
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .AsQueryable();
+        if (!string.IsNullOrWhiteSpace(fullName) || !string.IsNullOrWhiteSpace(email))
+        {
+            Expression<Func<User, bool>> expr = u => true;
+            var param = expr.Parameters[0];
 
-        if (!string.IsNullOrWhiteSpace(fullName))
-            query = query.Where(u => u.FullName.Contains(fullName));
+            if (!string.IsNullOrWhiteSpace(fullName))
+                expr = u => u.FullName.Contains(fullName);
+            
+            if (!string.IsNullOrWhiteSpace(email))
+                expr = u => u.Email.Contains(email);
 
-        if (!string.IsNullOrWhiteSpace(email))
-            query = query.Where(u => u.Email.Contains(email));
+            filter = u => (fullName == null || u.FullName.Contains(fullName)) 
+                       && (email == null || u.Email.Contains(email));
+        }
 
-        var normalizedOffset = Math.Max(offset, 0);
-        var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
-
-        return query
-            .Skip(normalizedOffset)
-            .Take(normalizedLimit)
-            .ToList();
+        return base.GetAll(limit, offset, filter);
     }
 
     public override User? Update(Guid id, User user)
@@ -64,8 +60,7 @@ public class UserRepository : GenericRepository<User, Guid>, IUserRepository
     }
 
     public User? GetByEmail(string email) =>
-        _dbSet.Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-            .FirstOrDefault(u => u.Email == email);
+        GetByField(u => u.Email == email);
 
     public bool ExistsByEmail(string email) => 
         _dbSet.Any(u => u.Email == email);
