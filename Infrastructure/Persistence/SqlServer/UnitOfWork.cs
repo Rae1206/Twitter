@@ -22,7 +22,8 @@ public class UnitOfWork : IUnitOfWork
         IUserRepository userRepository,
         IPostRepository postRepository,
         IAuthRepository authRepository,
-        IRoleRepository roleRepository)
+        IRoleRepository roleRepository,
+        IEmailTemplateRepository emailTemplateRepository)
     {
         _context = context;
         Users = userRepository;

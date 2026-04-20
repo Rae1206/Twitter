@@ -16,7 +16,8 @@ namespace Application.Services;
 public class AuthService(
     IUnitOfWork unitOfWork,
     IConfiguration configuration,
-    ICacheService cacheService) : IAuthService
+    ICacheService cacheService,
+    IEmailService emailService) : IAuthService
 {
     public GenericResponse<LoginAuthResponse> Login(LoginAuthRequest model)
     {

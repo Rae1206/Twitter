@@ -24,4 +24,14 @@ public interface IAuthService
     /// <param name="model">Refresh token</param>
     /// <returns>Nuevo LoginAuthResponse con token y refreshToken</returns>
     GenericResponse<LoginAuthResponse> Renew(RenewAuthRequest model);
+
+    /// <summary>
+    /// Solicita recuperación de contraseña - envía OTP por email.
+    /// </summary>
+    Task<GenericResponse<ResetPasswordResponse>> RequestPasswordReset(ResetPasswordRequest model);
+
+    /// <summary>
+    /// Verifica OTP y cambia la contraseña.
+    /// </summary>
+    Task<GenericResponse<LoginAuthResponse>> VerifyOtpAndResetPassword(VerifyOtpRequest model);
 }
