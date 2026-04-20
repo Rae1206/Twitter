@@ -2,7 +2,6 @@ using Application.Interfaces.Services;
 using Application.Models.Requests.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shared;
 using Shared.Constants;
 using Twitter.WebApi.Atributos;
 
@@ -12,7 +11,7 @@ namespace WebApi.Controllers;
 [DeveloperAuthor(Name = "ALEX", Description = "Controller fo users")]
 [ApiController]
 
-public class UserController(IUserService userService, SMTP smtp) : ControllerBase
+public class UserController(IUserService userService) : ControllerBase
 {
     [HttpPost("test-email")]
     public async Task<IActionResult> TestEmail([FromQuery] string to)

@@ -16,7 +16,6 @@ public class UnitOfWork : IUnitOfWork
     public IPostRepository Posts { get; }
     public IAuthRepository Auth { get; }
     public IRoleRepository Roles { get; }
-    public IEmailTemplateRepository EmailTemplates { get; }
 
     public UnitOfWork(
         TwitterDbContext context,
@@ -31,7 +30,6 @@ public class UnitOfWork : IUnitOfWork
         Posts = postRepository;
         Auth = authRepository;
         Roles = roleRepository;
-        EmailTemplates = emailTemplateRepository;
     }
 
     public void Create<T>(T entity) where T : class

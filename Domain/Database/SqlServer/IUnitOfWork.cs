@@ -13,7 +13,6 @@ public interface IUnitOfWork
     IPostRepository Posts { get; }
     IAuthRepository Auth { get; }
     IRoleRepository Roles { get; }
-    IEmailTemplateRepository EmailTemplates { get; }
 
     // ============================================
     // OPERACIONES DE ESCRITURA

@@ -39,23 +39,15 @@ public class RoleRepository : GenericRepository<Role, Guid>, IRoleRepository
         .Select(r => r.RoleId)
         .FirstOrDefault();
 
-    public List<Role> GetRolesByUserId(Guid userId)
-    {
-        // Forzar ejecución inmediata para evitar DbContext compartido
-        return _context.UserRoles
-            .Where(ur => ur.UserId == userId)
-            .Include(ur => ur.Role)
-            .Select(ur => ur.Role)
-            .ToList();
-    }
+    public List<Role> GetRolesByUserId(Guid userId) => _context.UserRoles
+        .Where(ur => ur.UserId == userId)
+        .Include(ur => ur.Role)
+        .Select(ur => ur.Role)
+        .ToList();
 
-    public string? GetPrimaryRoleName(Guid userId)
-    {
-        // Forzar ejecución inmediata para evitar DbContext compartido
-        return _context.UserRoles
-            .Where(ur => ur.UserId == userId)
-            .Include(ur => ur.Role)
-            .OrderBy(ur => ur.AssignedAt)
-            .FirstOrDefault()?.Role?.Name;
-    }
+    public string? GetPrimaryRoleName(Guid userId) => _context.UserRoles
+        .Where(ur => ur.UserId == userId)
+        .Include(ur => ur.Role)
+        .OrderBy(ur => ur.AssignedAt)
+        .FirstOrDefault()?.Role?.Name;
 }
