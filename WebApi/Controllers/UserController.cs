@@ -2,6 +2,7 @@ using Application.Interfaces.Services;
 using Application.Models.Requests.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared;
 using Shared.Constants;
 using Twitter.WebApi.Atributos;
 
@@ -11,8 +12,22 @@ namespace WebApi.Controllers;
 [DeveloperAuthor(Name = "ALEX", Description = "Controller fo users")]
 [ApiController]
 
-public class UserController(IUserService userService) : ControllerBase
+public class UserController(IUserService userService, SMTP smtp) : ControllerBase
 {
+    [HttpPost("test-email")]
+    public async Task<IActionResult> TestEmail([FromQuery] string to)
+    {
+        try
+        {
+            await smtp.SendEmailAsync(to, "Test desde Twitter API", "<h1>Test</h1><p>Email de prueba</p>", true);
+            return Ok(new { message = "Email enviado" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     [HttpPost("create")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest model)
     {
@@ -52,16 +67,20 @@ public class UserController(IUserService userService) : ControllerBase
         return Ok(user);
     }
 
-    [Authorize(Roles = "Admin")]
-    [HttpPatch("{id:guid}/change-password")]
-    public async Task<IActionResult> ChangeUserPassword(Guid id, [FromBody] ChangePasswordUserRequest model)
+    [Authorize]
+    [HttpPatch("change-password")]
+    public async Task<IActionResult> ChangeUserPassword([FromBody] ChangePasswordUserRequest model)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        await userService.ChangePassword(id, model);
+        var userIdClaim = User.FindFirst(ClaimsConstants.USER_ID)?.Value
+            ?? throw new UnauthorizedAccessException(ResponseConstants.USER_NOT_EXISTS);
+
+        var userId = Guid.Parse(userIdClaim);
+        await userService.ChangePassword(userId, model);
         return NoContent();
     }
 

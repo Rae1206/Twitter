@@ -53,4 +53,43 @@ public class AuthController(IAuthService authService) : ControllerBase
         var response = authService.Renew(model);
         return Ok(response);
     }
+
+    /// <summary>
+    /// Solicita recuperación de contraseña - envía OTP por email.
+    /// </summary>
+    [HttpPost("reset-password")]
+    [EndpointSummary("Solicitar recuperación de contraseña")]
+    [EndpointDescription("Envía un código OTP al correo del usuario para recuperar la contraseña.")]
+    [ProducesResponseType<GenericResponse<ResetPasswordResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var response = await authService.RequestPasswordReset(model);
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Verifica OTP y cambia la contraseña.
+    /// </summary>
+    [HttpPost("verify-otp")]
+    [EndpointSummary("Verificar OTP y cambiar contraseña")]
+    [EndpointDescription("Verifica el código OTP enviado por email y cambia la contraseña.")]
+    [ProducesResponseType<GenericResponse<LoginAuthResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var response = await authService.VerifyOtpAndResetPassword(model);
+        return Ok(response);
+    }
 }

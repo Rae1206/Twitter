@@ -1,4 +1,5 @@
 using Twitter.Domain.Interfaces.Repositories;
+using Twitter.Domain.Database.SqlServer.Entities;
 
 namespace Twitter.Domain.Database.SqlServer;
 
@@ -12,6 +13,7 @@ public interface IUnitOfWork
     IPostRepository Posts { get; }
     IAuthRepository Auth { get; }
     IRoleRepository Roles { get; }
+    IEmailTemplateRepository EmailTemplates { get; }
 
     // ============================================
     // OPERACIONES DE ESCRITURA

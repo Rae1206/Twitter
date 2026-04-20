@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Mail;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Configuration;
 using Shared.Constants;
 
@@ -37,18 +39,21 @@ public class SMTP
         var from = _configuration[ConfigurationConstants.SMTP_FROM]
             ?? throw new InvalidOperationException(ConfigurationConstants.SMTP_FROM);
 
+        Console.WriteLine($"[SMTP] Host: {host}, Port: {port}, User: {user}, From: {from}");
+
+        // Puerto 587 usa STARTTLS, puerto 465 usa SSL implícito
+        bool useSsl = port == 465 || port == 587;
+
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+        ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
+
         using var client = new SmtpClient(host, port)
         {
             Credentials = new NetworkCredential(user, password),
-            EnableSsl = true,
-            DeliveryMethod = SmtpDeliveryMethod.Network
+            EnableSsl = useSsl,
+            DeliveryMethod = SmtpDeliveryMethod.Network,
+            TargetName = "STARTTLS" // Necesario para algunos servidores SMTP
         };
-
-        // Puerto 465 usa SSL implícito, puerto 587 usa STARTTLS
-        if (port == 465)
-        {
-            client.EnableSsl = true;
-        }
 
         var mailMessage = new MailMessage
         {
@@ -61,5 +66,19 @@ public class SMTP
         mailMessage.To.Add(to);
 
         await client.SendMailAsync(mailMessage);
+    }
+
+    /// <summary>
+    /// Valida certificados SSL (temporal: acepta todos para testing)
+    /// </summary>
+    private static bool ValidateServerCertificate(
+        object sender,
+        X509Certificate? certificate,
+        X509Chain? chain,
+        SslPolicyErrors sslPolicyErrors)
+    {
+        // Para desarrollo: aceptar todos los certificados
+        // En producción, implementar validación apropiada
+        return true;
     }
 }

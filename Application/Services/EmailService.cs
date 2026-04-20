@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Application.Interfaces.Services;
+using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Database.SqlServer.Entities;
 using Shared;
 using Shared.Constants;
 
@@ -8,87 +11,80 @@ namespace Application.Services;
 public class EmailService : IEmailService
 {
     private readonly SMTP _smtp;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<EmailService> _logger;
 
-    public EmailService(SMTP smtp, ILogger<EmailService> logger)
+    public EmailService(SMTP smtp, IServiceScopeFactory scopeFactory, ILogger<EmailService> logger)
     {
         _smtp = smtp;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
     public async Task SendWelcomeEmailAsync(string email, string fullName)
     {
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("Enviando email de bienvenida a: {Email}", email);
-        }
-
-        var subject = "Bienvenido a Twitter";
-        var body = $@"
-            <h1>¡Bienvenido a Twitter, {fullName}!</h1>
-            <p>Nos alegra mucho que te hayas unido a nuestra plataforma.</p>
-            <p>Ahora puedes:</p>
-            <ul>
-                <li>Crear y compartir tus pensamientos</li>
-                <li>Seguir a otros usuarios</li>
-                <li>Interactuar con publicaciones</li>
-            </ul>
-            <p>¡Empieza a explorar y conectar con personas!</p>
-        ";
-
-        await _smtp.SendEmailAsync(email, subject, body, isHtml: true);
-
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("Email de bienvenida enviado exitosamente a: {Email}", email);
-        }
+        await SendTemplateEmailAsync(EmailTemplateConstants.Welcome, email, new { fullName, email });
     }
 
     public async Task SendPasswordChangedNotificationAsync(string email, string fullName)
     {
-        if (_logger.IsEnabled(LogLevel.Information))
+        await SendTemplateEmailAsync(EmailTemplateConstants.PasswordChanged, email, new { fullName, email });
+    }
+
+    public async Task SendPasswordResetEmailAsync(string email, string fullName, string otp)
+    {
+        await SendTemplateEmailAsync(EmailTemplateConstants.PasswordReset, email, new { fullName, email, otp });
+    }
+
+    private async Task SendTemplateEmailAsync(string templateName, string to, object variables)
+    {
+        try
         {
-            _logger.LogInformation("Enviando notificación de cambio de contraseña a: {Email}", email);
+            // Crear un scope nuevo para evitar conflicto de DbContext
+            using var scope = _scopeFactory.CreateScope();
+            var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+            var template = unitOfWork.EmailTemplates.GetByName(templateName);
+
+            if (template is null)
+            {
+                _logger.LogError("Template de email no encontrado: {TemplateName}", templateName);
+                return;
+            }
+
+            var subject = ReplaceVariables(template.Subject, variables);
+            var body = ReplaceVariables(template.Body, variables);
+
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Enviando email {TemplateName} a: {Email}", templateName, to);
+            }
+
+            await _smtp.SendEmailAsync(to, subject, body, isHtml: true);
+
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Email {TemplateName} enviado exitosamente a: {Email}", templateName, to);
+            }
         }
-
-        var subject = "Tu contraseña ha sido cambiada";
-        var body = $@"
-            <h1>Notificación de seguridad</h1>
-            <p>Hola {fullName},</p>
-            <p>Tu contraseña ha sido cambiada exitosamente.</p>
-            <p>Si no fuiste tú quien realizó este cambio, por favor contacta con soporte inmediatamente.</p>
-        ";
-
-        await _smtp.SendEmailAsync(email, subject, body, isHtml: true);
-
-        if (_logger.IsEnabled(LogLevel.Information))
+        catch (Exception ex)
         {
-            _logger.LogInformation("Notificación de contraseña enviada a: {Email}", email);
+            _logger.LogError(ex, "Error al enviar email {TemplateName} a: {Email}", templateName, to);
+            // No lanzamos la excepción para no fallar la operación principal
         }
     }
 
-    public async Task SendPasswordResetEmailAsync(string email, string fullName, string resetToken)
+    private static string ReplaceVariables(string template, object variables)
     {
-        if (_logger.IsEnabled(LogLevel.Information))
+        var result = template;
+        var type = variables.GetType();
+
+        foreach (var prop in type.GetProperties())
         {
-            _logger.LogInformation("Enviando email de recuperación de contraseña a: {Email}", email);
+            var value = prop.GetValue(variables)?.ToString() ?? "";
+            result = result.Replace($"{{{prop.Name}}}", value);
         }
 
-        var subject = "Recupera tu contraseña";
-        var body = $@"
-            <h1>Recuperación de contraseña</h1>
-            <p>Hola {fullName},</p>
-            <p>Has solicitado recuperar tu contraseña.</p>
-            <p>Tu token de recuperación es: <strong>{resetToken}</strong></p>
-            <p>Este token expire en 24 horas.</p>
-            <p>Si no solicitaste este cambio, ignora este email.</p>
-        ";
-
-        await _smtp.SendEmailAsync(email, subject, body, isHtml: true);
-
-        if (_logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation("Email de recuperación enviado a: {Email}", email);
-        }
+        return result;
     }
 }

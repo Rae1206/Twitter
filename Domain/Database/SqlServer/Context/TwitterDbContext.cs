@@ -24,6 +24,8 @@ public partial class TwitterDbContext : DbContext
 
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
+    public virtual DbSet<EmailTemplate> EmailTemplates { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Post>(entity =>
@@ -86,6 +88,18 @@ public partial class TwitterDbContext : DbContext
             entity.HasOne(d => d.Role).WithMany(p => p.UserRoles)
                 .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmailTemplate>(entity =>
+        {
+            entity.HasKey(e => e.EmailTemplateId).HasName("PK__EmailTemplates__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => e.Name, "IX_EmailTemplates_Name").IsUnique();
+
+            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Subject).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Body).IsRequired();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
         });
 
         OnModelCreatingPartial(modelBuilder);

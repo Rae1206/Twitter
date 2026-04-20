@@ -49,6 +49,7 @@ public static class ServiceCollectionExtension
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<IAuthRepository, AuthRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IEmailTemplateRepository, EmailTemplateRepository>();
 
         // 6. Servicios de Application
         services.AddScoped<IAuthService, AuthService>();
@@ -57,7 +58,11 @@ public static class ServiceCollectionExtension
 
         // 7. Email
         services.AddSingleton<SMTP>();
-        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IEmailService>(sp => new EmailService(
+            sp.GetRequiredService<SMTP>(),
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetRequiredService<ILogger<EmailService>>()
+        ));
 
         // 8. JWT Authentication
         AddJwtAuthentication(services, configuration);
