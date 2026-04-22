@@ -39,7 +39,7 @@ public class UserController(IUserService userService, IEmailService emailService
         return CreatedAtAction(nameof(GetUserById), new { id = user.UserId }, user);
     }
 
-    [Authorize(Roles = "Admin")]
+   // [Authorize(Roles = "Admin")]
     [HttpGet("list")]
     public IActionResult GetAllUsers([FromQuery] GetAllUserRequest model)
     {
