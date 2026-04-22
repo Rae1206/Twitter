@@ -7,6 +7,9 @@ public static class PipelineExtensions
 {
 public static void ConfigurePipeline(this WebApplication app)
     {
+        // Necesario detrás de proxy (Render/Cloudflare) para respetar https real
+        app.UseForwardedHeaders();
+
         // CORS primero
         app.UseCors();
         

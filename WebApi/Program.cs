@@ -1,6 +1,7 @@
 using Twitter.Domain.Database.SqlServer;
 using Serilog;
 using WebApi.Extensions;
+using Microsoft.AspNetCore.HttpOverrides;
 
 // Logger de arranque para errores durante el inicio
 Log.Logger = new LoggerConfiguration()
@@ -17,7 +18,14 @@ try
     builder.Configuration.AddJsonFile("secret.json", optional: true, reloadOnChange: true);
 
 // Configuración infraestructura
+    builder.Services.AddSignalR();
     builder.ConfigureSerilog();
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddOpenApi();
