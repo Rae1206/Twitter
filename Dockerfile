@@ -1,42 +1,34 @@
 # =====================================================
 # Twitter API - Dockerfile para Render
 # =====================================================
-# Optimizado para producción con multi-stage build
+# Optimizado para producción
 # =====================================================
 
 # Stage 1: Build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copiar solution y restore
-COPY ["Twitter.slnx", "./"]
-COPY ["WebApi/WebApi.csproj", "WebApi/"]
-COPY ["Application/Application.csproj", "Application/"]
-COPY ["Domain/Domain.csproj", "Domain/"]
-COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
-COPY ["Shared/Shared.csproj", "Shared/"]
-
-RUN dotnet restore "WebApi/WebApi.csproj"
-
-# Copiar todo el codigo
+# Copiar todo el codigo fuente
 COPY . .
-WORKDIR "/src/WebApi"
 
-# Build
-RUN dotnet build "WebApi.csproj" -c Release -o /app/build --no-restore
+# Restaurar todos los proyectos
+RUN dotnet restore
 
-# Publish
-RUN dotnet publish "WebApi.csproj" -c Release -o /app/publish --no-build
+# Compilar todos los proyectos
+RUN dotnet build -c Release
+
+# Publicar WebApi
+RUN dotnet publish WebApi/WebApi.csproj -c Release -o /app/publish
 
 # Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Crear usuario no-root
+# Crear usuario no-root (opcional, para producción)
 RUN groupadd -r twitter && useradd -r -g twitter twitter || true
 
 COPY --from=build /app/publish .
-RUN chown -R twitter:twitter /app
+RUN chown -R twitter:twitter /app || true
 
 USER twitter
 
