@@ -48,7 +48,9 @@ public static class CacheHelper
         {
             Key = AuthRefreshTokenKey(value),
             Expiration = TimeSpan.FromDays(Convert.ToInt32(
-                configuration[ConfigurationConstants.AUTH_REFRESH_TOKEN_EXPIRATION_IN_DAYS] ?? "15"))
+                Environment.GetEnvironmentVariable("Auth__RefreshToken__ExpirationInDays")
+                ?? configuration[ConfigurationConstants.AUTH_REFRESH_TOKEN_EXPIRATION_IN_DAYS] 
+                ?? "15"))
         };
     }
 }

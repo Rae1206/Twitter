@@ -93,28 +93,36 @@ public static class TokenHelper
     /// <exception cref="Exception">Lanza si falta alguna propiedad requerida</exception>
     public static TokenConfiguration Configuration(IConfiguration configuration)
     {
-        // Cargar configuración desde env vars o appsettings (secret.json tiene prioridad)
-        var issuer = Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_ISSUER)
+        // Cargar configuración desde env vars o appsettings ( Render用__)
+        var issuer = Environment.GetEnvironmentVariable("Jwt__Issuer")
+            ?? Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_ISSUER)
             ?? configuration[ConfigurationConstants.JWT_ISSUER]
             ?? throw new Exception(ResponseConstants.ConfigurationPropertyNotFound(ConfigurationConstants.JWT_ISSUER));
 
-        var audience = Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_AUDIENCE)
+        var audience = Environment.GetEnvironmentVariable("Jwt__Audience")
+            ?? Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_AUDIENCE)
             ?? configuration[ConfigurationConstants.JWT_AUDIENCE]
             ?? throw new Exception(ResponseConstants.ConfigurationPropertyNotFound(ConfigurationConstants.JWT_AUDIENCE));
 
-        var privateKey = Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_PRIVATE_KEY)
+        var privateKey = Environment.GetEnvironmentVariable("Jwt__PrivateKey")
+            ?? Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_PRIVATE_KEY)
             ?? configuration[ConfigurationConstants.JWT_PRIVATE_KEY]
             ?? throw new Exception(ResponseConstants.ConfigurationPropertyNotFound(ConfigurationConstants.JWT_PRIVATE_KEY));
 
         // Crear clave de seguridad simétrica
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKey));
 
-        // Calcular expiración aleatoria entre min y max
+        // Calcular expiración aleatoria entre min y max ( Render用__)
         var now = DateTimeHelper.UtcNow();
-        var randomExpiration = rnd.Next(
-            Convert.ToInt32(configuration[ConfigurationConstants.JWT_EXPIRATION_IN_MINUTES_MIN] ?? "1"),
-            Convert.ToInt32(configuration[ConfigurationConstants.JWT_EXPIRATION_IN_MINUTES_MAX] ?? "5")
-        );
+        var minExpires = Convert.ToInt32(
+            Environment.GetEnvironmentVariable("Jwt__ExpirationInMinutesMin")
+            ?? configuration[ConfigurationConstants.JWT_EXPIRATION_IN_MINUTES_MIN] 
+            ?? "1");
+        var maxExpires = Convert.ToInt32(
+            Environment.GetEnvironmentVariable("Jwt__ExpirationInMinutesMax")
+            ?? configuration[ConfigurationConstants.JWT_EXPIRATION_IN_MINUTES_MAX] 
+            ?? "5");
+        var randomExpiration = rnd.Next(minExpires, maxExpires);
         var timespanExpiration = TimeSpan.FromMinutes(randomExpiration);
         var datetimeExpiration = now.Add(TimeSpan.FromMinutes(randomExpiration));
 

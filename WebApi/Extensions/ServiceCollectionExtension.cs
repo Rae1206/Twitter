@@ -28,8 +28,9 @@ public static class ServiceCollectionExtension
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // 1. DbContext con SQL Server
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
+        // 1. DbContext con SQL Server ( Render用__)
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+            ?? configuration.GetConnectionString("DefaultConnection")
             ?? Environment.GetEnvironmentVariable("CONNECTION_STRING_DATABASE");
 
         services.AddDbContext<TwitterDbContext>(options =>
@@ -75,16 +76,19 @@ public static class ServiceCollectionExtension
     /// </summary>
     private static void AddJwtAuthentication(IServiceCollection services, IConfiguration configuration)
     {
-        // Cargar configuración JWT
-        var issuer = Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_ISSUER)
+        // Cargar configuración JWT -优先环境变量 ( Render用__)
+        var issuer = Environment.GetEnvironmentVariable("Jwt__Issuer")
+            ?? Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_ISSUER)
             ?? configuration[ConfigurationConstants.JWT_ISSUER]
             ?? throw new InvalidOperationException("JWT Issuer no configurado");
 
-        var audience = Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_AUDIENCE)
+        var audience = Environment.GetEnvironmentVariable("Jwt__Audience")
+            ?? Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_AUDIENCE)
             ?? configuration[ConfigurationConstants.JWT_AUDIENCE]
             ?? throw new InvalidOperationException("JWT Audience no configurado");
 
-        var privateKey = Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_PRIVATE_KEY)
+        var privateKey = Environment.GetEnvironmentVariable("Jwt__PrivateKey")
+            ?? Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_PRIVATE_KEY)
             ?? configuration[ConfigurationConstants.JWT_PRIVATE_KEY]
             ?? throw new InvalidOperationException("JWT PrivateKey no configurado");
 

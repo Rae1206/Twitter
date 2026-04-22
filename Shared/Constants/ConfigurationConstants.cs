@@ -7,10 +7,10 @@ namespace Shared.Constants;
 public static class ConfigurationConstants
 {
     // === Connection Strings ===
-    public const string CONNECTION_STRING_DATABASE = "ConnectionStrings:Database";
+    public const string CONNECTION_STRING_DATABASE = "ConnectionStrings:DefaultConnection";
 
     // === JWT ===
-    public const string JWT_PRIVATE_KEY = "Jwt:SecretKey";
+    public const string JWT_PRIVATE_KEY = "Jwt:PrivateKey";
     public const string JWT_AUDIENCE = "Jwt:Audience";
     public const string JWT_ISSUER = "Jwt:Issuer";
     public const string JWT_EXPIRATION_IN_MINUTES_MIN = "Jwt:ExpirationInMinutesMin";

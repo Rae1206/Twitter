@@ -28,15 +28,21 @@ public class SMTP
     /// <param name="isHtml">Indica si el cuerpo es HTML</param>
     public async Task SendEmailAsync(string to, string subject, string body, bool isHtml = false)
     {
-        var host = _configuration[ConfigurationConstants.SMTP_HOST]
+        //优先环境变量 ( Render用__)
+        var host = Environment.GetEnvironmentVariable("SMTP__Host")
+            ?? _configuration[ConfigurationConstants.SMTP_HOST]
             ?? throw new InvalidOperationException(ConfigurationConstants.SMTP_HOST);
-        var port = int.Parse(_configuration[ConfigurationConstants.SMTP_PORT]
+        var port = int.Parse(Environment.GetEnvironmentVariable("SMTP__Port")
+            ?? _configuration[ConfigurationConstants.SMTP_PORT]
             ?? throw new InvalidOperationException(ConfigurationConstants.SMTP_PORT));
-        var user = _configuration[ConfigurationConstants.SMTP_USER]
+        var user = Environment.GetEnvironmentVariable("SMTP__User")
+            ?? _configuration[ConfigurationConstants.SMTP_USER]
             ?? throw new InvalidOperationException(ConfigurationConstants.SMTP_USER);
-        var password = _configuration[ConfigurationConstants.SMTP_PASSWORD]
+        var password = Environment.GetEnvironmentVariable("SMTP__Password")
+            ?? _configuration[ConfigurationConstants.SMTP_PASSWORD]
             ?? throw new InvalidOperationException(ConfigurationConstants.SMTP_PASSWORD);
-        var from = _configuration[ConfigurationConstants.SMTP_FROM]
+        var from = Environment.GetEnvironmentVariable("SMTP__From")
+            ?? _configuration[ConfigurationConstants.SMTP_FROM]
             ?? throw new InvalidOperationException(ConfigurationConstants.SMTP_FROM);
 
         Console.WriteLine($"[SMTP] Host: {host}, Port: {port}, User: {user}, From: {from}");
