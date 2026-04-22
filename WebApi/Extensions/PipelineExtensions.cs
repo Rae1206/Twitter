@@ -7,7 +7,10 @@ public static class PipelineExtensions
 {
     public static void ConfigurePipeline(this WebApplication app)
     {
-        // Pipeline de middleware primero
+        // CORS primero
+        app.UseCors();
+        
+        // Pipeline de middleware
         app.UseErrorHandler();
         app.UseAuthentication();
         app.UseAuthorization();
@@ -15,7 +18,7 @@ public static class PipelineExtensions
         // Registrar controllers
         app.MapControllers();
 
-        // OpenAPI (genera el documento)
+        // OpenAPI
         app.MapOpenApi();
 
         // Scalar UI

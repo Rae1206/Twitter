@@ -16,11 +16,22 @@ try
     // Cargar configuración de secret.json
     builder.Configuration.AddJsonFile("secret.json", optional: true, reloadOnChange: true);
 
-    // Configuración infraestructura
+// Configuración infraestructura
     builder.ConfigureSerilog();
     builder.Services.AddControllers();
-    builder.Services.AddEndpointsApiExplorer(); // <--falta esto
+    builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddOpenApi();
+    
+    // CORS para Scalar y frontend
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+    });
 
     // TODA la infraestructura consolidada (DbContext, Cache, Repositorios, Servicios, JWT)
     builder.Services.AddInfrastructure(builder.Configuration);
