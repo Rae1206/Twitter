@@ -2,15 +2,7 @@ USE X_alex;
 GO
 
 -- =====================================================
--- Twitter Clone - MÓDULO DE ADMINISTRACIÓN
--- Extiende el schema existente con:
---   - Permisos granulares (Permissions + RolePermissions)
---   - Audit Log (toda acción de admin queda registrada)
---   - Reportes de usuarios/posts
---   - Suspensiones y bans con historial
---   - Configuración global del sistema
---   - Dashboard stats (caché de métricas)
---   - Moderación de contenido
+-- Twitter Clone 
 -- =====================================================
 
 -- =====================================================
