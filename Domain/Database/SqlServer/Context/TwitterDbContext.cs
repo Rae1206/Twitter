@@ -158,7 +158,7 @@ public partial class TwitterDbContext : DbContext
             entity.HasIndex(e => e.EntityType, "IX_AdminAuditLogs_EntityType");
             entity.HasIndex(e => e.CreatedAt, "IX_AdminAuditLogs_CreatedAt");
 
-            entity.Property(e => e.AuditLogId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AuditLogId).HasColumnName("AuditId").HasDefaultValueSql("(newid())");
             entity.Property(e => e.Action).HasMaxLength(100).IsRequired();
             entity.Property(e => e.EntityType).HasMaxLength(50).IsRequired();
             entity.Property(e => e.EntityId).HasMaxLength(100);
@@ -170,6 +170,8 @@ public partial class TwitterDbContext : DbContext
             entity.HasOne(d => d.AdminUser).WithMany()
                 .HasForeignKey(d => d.AdminUserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable("AdminAuditLog");
         });
 
         modelBuilder.Entity<UserSuspension>(entity =>
@@ -220,13 +222,17 @@ public partial class TwitterDbContext : DbContext
         {
             entity.HasKey(e => e.ConfigId).HasName("PK__SystemConfigs__6D6FDC4E8D93F157");
 
-            entity.HasIndex(e => e.Key, "IX_SystemConfigs_Key").IsUnique();
+            entity.HasIndex(e => e.Key, "IX_SystemConfig_ConfigKey").IsUnique();
 
             entity.Property(e => e.ConfigId).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.Key).HasMaxLength(100).IsRequired();
-            entity.Property(e => e.Value).IsRequired();
+            entity.Property(e => e.Key).HasColumnName("ConfigKey").HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Value).HasColumnName("ConfigValue").IsRequired();
+            entity.Property(e => e.ValueType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Module).HasMaxLength(100);
             entity.Property(e => e.Description).HasMaxLength(255);
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedByUserId).HasColumnName("UpdatedByUserId");
+
+            entity.ToTable("SystemConfig");
         });
 
         modelBuilder.Entity<AdminDashboardStat>(entity =>

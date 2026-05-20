@@ -18,6 +18,6 @@ public class SystemConfigRepository : GenericRepository<SystemConfig, Guid>, ISy
 
     public async Task<List<SystemConfig>> GetAllEditableAsync()
     {
-        return await _context.SystemConfigs.Where(c => c.IsEditable).ToListAsync();
+        return await _context.SystemConfigs.ToListAsync();
     }
 }

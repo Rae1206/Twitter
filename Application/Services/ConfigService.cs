@@ -26,14 +26,10 @@ public class ConfigService(
             throw new ResourceNotFoundException("configuración", key);
         }
 
-        if (!config.IsEditable)
-        {
-            throw new InvalidOperationException($"La configuración '{key}' no es editable");
-        }
-
         var oldValue = config.Value;
         config.Value = value;
         config.UpdatedAt = DateTimeHelper.UtcNow();
+        config.UpdatedByUserId = adminId;
         unitOfWork.Update(config);
         await unitOfWork.SaveChangesAsync();
 

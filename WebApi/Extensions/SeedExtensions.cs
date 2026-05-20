@@ -174,12 +174,12 @@ public static class SeedExtensions
     {
         var configs = new[]
         {
-            ("site.name", "Twitter Clone", "Nombre del sitio", true),
-            ("site.maintenance", "false", "Modo mantenimiento", true),
-            ("posts.max_length", "280", "Máximo de caracteres por post", true)
+            ("site.name", "Twitter Clone", "string", "general", "Nombre del sitio"),
+            ("site.maintenance", "false", "boolean", "general", "Modo mantenimiento"),
+            ("posts.max_length", "280", "number", "posts", "Máximo de caracteres por post")
         };
 
-        foreach (var (key, value, description, editable) in configs)
+        foreach (var (key, value, valueType, module, description) in configs)
         {
             var existing = unitOfWork.SystemConfigs.GetByKeyAsync(key).GetAwaiter().GetResult();
             if (existing is null)
@@ -189,9 +189,10 @@ public static class SeedExtensions
                     ConfigId = Guid.NewGuid(),
                     Key = key,
                     Value = value,
+                    ValueType = valueType,
+                    Module = module,
                     Description = description,
-                    IsEditable = editable,
-                    CreatedAt = DateTimeHelper.UtcNow()
+                    UpdatedAt = DateTimeHelper.UtcNow()
                 });
                 logger.LogInformation("Configuración creada: {Key}", key);
             }

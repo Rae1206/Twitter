@@ -10,11 +10,13 @@ public class SystemConfig
 
     public string Value { get; set; } = null!;
 
+    public string ValueType { get; set; } = "string";
+
+    public string? Module { get; set; }
+
     public string? Description { get; set; }
 
-    public bool IsEditable { get; set; }
-
-    public DateTime CreatedAt { get; set; }
-
     public DateTime? UpdatedAt { get; set; }
+
+    public Guid? UpdatedByUserId { get; set; }
 }
