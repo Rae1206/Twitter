@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Constants;
 using Twitter.WebApi.Atributos;
+using WebApi.Attributes;
 
 namespace WebApi.Controllers;
 
@@ -83,7 +84,8 @@ public class UserController(IUserService userService, IEmailService emailService
         return NoContent();
     }
 
-    [Authorize(Roles = "Admin")]
+    // [Authorize(Roles = "Admin")]
+    [RequirePermission(PermissionConstants.UsersDelete)]
     [HttpDelete("{id:guid}/delete")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {

@@ -13,6 +13,12 @@ public static class DependencyInjection
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddSingleton<ICacheService, CacheService>();
+        services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<ISuspensionService, SuspensionService>();
+        services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IConfigService, ConfigService>();
+        services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         return services;
     }

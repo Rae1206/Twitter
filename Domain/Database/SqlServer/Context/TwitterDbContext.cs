@@ -26,6 +26,22 @@ public partial class TwitterDbContext : DbContext
 
     public virtual DbSet<EmailTemplate> EmailTemplates { get; set; }
 
+    public virtual DbSet<Permission> Permissions { get; set; }
+
+    public virtual DbSet<RolePermission> RolePermissions { get; set; }
+
+    public virtual DbSet<AdminAuditLog> AdminAuditLogs { get; set; }
+
+    public virtual DbSet<UserSuspension> UserSuspensions { get; set; }
+
+    public virtual DbSet<ContentReport> ContentReports { get; set; }
+
+    public virtual DbSet<SystemConfig> SystemConfigs { get; set; }
+
+    public virtual DbSet<AdminDashboardStat> AdminDashboardStats { get; set; }
+
+    public virtual DbSet<AdminSession> AdminSessions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Post>(entity =>
@@ -101,6 +117,147 @@ public partial class TwitterDbContext : DbContext
             entity.Property(e => e.Body).IsRequired();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
         });
+
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.HasKey(e => e.PermissionId).HasName("PK__Permissions__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => e.Name, "IX_Permissions_Name").IsUnique();
+
+            entity.Property(e => e.PermissionId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Module).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+        });
+
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.HasKey(e => e.RolePermissionId).HasName("PK__RolePermissions__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => new { e.RoleId, e.PermissionId }, "IX_RolePermissions_RoleId_PermissionId").IsUnique();
+
+            entity.Property(e => e.RolePermissionId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AssignedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.RolePermissions)
+                .HasForeignKey(d => d.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.Permission).WithMany(p => p.RolePermissions)
+                .HasForeignKey(d => d.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AdminAuditLog>(entity =>
+        {
+            entity.HasKey(e => e.AuditLogId).HasName("PK__AdminAuditLogs__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => e.AdminUserId, "IX_AdminAuditLogs_AdminUserId");
+            entity.HasIndex(e => e.Action, "IX_AdminAuditLogs_Action");
+            entity.HasIndex(e => e.EntityType, "IX_AdminAuditLogs_EntityType");
+            entity.HasIndex(e => e.CreatedAt, "IX_AdminAuditLogs_CreatedAt");
+
+            entity.Property(e => e.AuditLogId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Action).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.EntityType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.EntityId).HasMaxLength(100);
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.IpAddress).HasMaxLength(50);
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.AdminUser).WithMany()
+                .HasForeignKey(d => d.AdminUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserSuspension>(entity =>
+        {
+            entity.HasKey(e => e.SuspensionId).HasName("PK__UserSuspensions__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => e.UserId, "IX_UserSuspensions_UserId");
+            entity.HasIndex(e => e.AdminUserId, "IX_UserSuspensions_AdminUserId");
+            entity.HasIndex(e => e.IsActive, "IX_UserSuspensions_IsActive");
+
+            entity.Property(e => e.SuspensionId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.SuspensionType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Reason).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User).WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.AdminUser).WithMany()
+                .HasForeignKey(d => d.AdminUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ContentReport>(entity =>
+        {
+            entity.HasKey(e => e.ReportId).HasName("PK__ContentReports__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => e.ReporterId, "IX_ContentReports_ReporterId");
+            entity.HasIndex(e => e.TargetType, "IX_ContentReports_TargetType");
+            entity.HasIndex(e => e.Status, "IX_ContentReports_Status");
+            entity.HasIndex(e => e.AssignedTo, "IX_ContentReports_AssignedTo");
+
+            entity.Property(e => e.ReportId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.TargetType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.TargetId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Reason).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Resolution).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Reporter).WithMany()
+                .HasForeignKey(d => d.ReporterId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SystemConfig>(entity =>
+        {
+            entity.HasKey(e => e.ConfigId).HasName("PK__SystemConfigs__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => e.Key, "IX_SystemConfigs_Key").IsUnique();
+
+            entity.Property(e => e.ConfigId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Key).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Value).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(255);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+        });
+
+        modelBuilder.Entity<AdminDashboardStat>(entity =>
+        {
+            entity.HasKey(e => e.StatId).HasName("PK__AdminDashboardStats__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => e.StatKey, "IX_AdminDashboardStats_StatKey").IsUnique();
+
+            entity.Property(e => e.StatId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.StatKey).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.LastCalculated).HasDefaultValueSql("(sysutcdatetime())");
+        });
+
+        modelBuilder.Entity<AdminSession>(entity =>
+        {
+            entity.HasKey(e => e.SessionId).HasName("PK__AdminSessions__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => e.AdminUserId, "IX_AdminSessions_AdminUserId");
+
+            entity.Property(e => e.SessionId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.IpAddress).HasMaxLength(50);
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+
+            entity.HasOne(d => d.AdminUser).WithMany()
+                .HasForeignKey(d => d.AdminUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Global query filters for soft delete
+        modelBuilder.Entity<User>().HasQueryFilter(u => u.DeletedAt == null);
+        modelBuilder.Entity<Post>().HasQueryFilter(p => p.DeletedAt == null);
 
         OnModelCreatingPartial(modelBuilder);
     }

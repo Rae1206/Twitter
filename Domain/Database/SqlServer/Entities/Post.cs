@@ -13,6 +13,16 @@ public partial class Post
 
     public bool IsPublished { get; set; }
 
+    public int ReportCount { get; set; }
+
+    public bool IsFlagged { get; set; }
+
+    public DateTime? DeletedAt { get; set; }
+
+    public Guid? DeletedByAdminId { get; set; }
+
+    public string? DeletedReason { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public virtual User User { get; set; } = null!;

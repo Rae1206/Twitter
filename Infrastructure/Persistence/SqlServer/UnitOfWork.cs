@@ -17,6 +17,14 @@ public class UnitOfWork : IUnitOfWork
     public IAuthRepository Auth { get; }
     public IRoleRepository Roles { get; }
     public IEmailTemplateRepository EmailTemplates { get; }
+    public IPermissionRepository Permissions { get; }
+    public IRolePermissionRepository RolePermissions { get; }
+    public IAdminAuditLogRepository AdminAuditLogs { get; }
+    public IUserSuspensionRepository UserSuspensions { get; }
+    public IContentReportRepository ContentReports { get; }
+    public ISystemConfigRepository SystemConfigs { get; }
+    public IAdminDashboardStatRepository AdminDashboardStats { get; }
+    public IAdminSessionRepository AdminSessions { get; }
 
     public UnitOfWork(
         TwitterDbContext context,
@@ -24,7 +32,15 @@ public class UnitOfWork : IUnitOfWork
         IPostRepository postRepository,
         IAuthRepository authRepository,
         IRoleRepository roleRepository,
-        IEmailTemplateRepository emailTemplateRepository)
+        IEmailTemplateRepository emailTemplateRepository,
+        IPermissionRepository permissionRepository,
+        IRolePermissionRepository rolePermissionRepository,
+        IAdminAuditLogRepository adminAuditLogRepository,
+        IUserSuspensionRepository userSuspensionRepository,
+        IContentReportRepository contentReportRepository,
+        ISystemConfigRepository systemConfigRepository,
+        IAdminDashboardStatRepository adminDashboardStatRepository,
+        IAdminSessionRepository adminSessionRepository)
     {
         _context = context;
         Users = userRepository;
@@ -32,6 +48,14 @@ public class UnitOfWork : IUnitOfWork
         Auth = authRepository;
         Roles = roleRepository;
         EmailTemplates = emailTemplateRepository;
+        Permissions = permissionRepository;
+        RolePermissions = rolePermissionRepository;
+        AdminAuditLogs = adminAuditLogRepository;
+        UserSuspensions = userSuspensionRepository;
+        ContentReports = contentReportRepository;
+        SystemConfigs = systemConfigRepository;
+        AdminDashboardStats = adminDashboardStatRepository;
+        AdminSessions = adminSessionRepository;
     }
 
     public void Create<T>(T entity) where T : class

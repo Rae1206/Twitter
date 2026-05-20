@@ -12,4 +12,5 @@ public interface IUserService
     UserDto Get(Guid userId);
     Task ChangePassword(Guid userId, ChangePasswordUserRequest model);
     Task Delete(Guid userId);
+    Task Restore(Guid userId);
 }

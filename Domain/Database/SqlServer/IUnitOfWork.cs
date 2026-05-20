@@ -14,6 +14,14 @@ public interface IUnitOfWork
     IAuthRepository Auth { get; }
     IRoleRepository Roles { get; }
     IEmailTemplateRepository EmailTemplates { get; }
+    IPermissionRepository Permissions { get; }
+    IRolePermissionRepository RolePermissions { get; }
+    IAdminAuditLogRepository AdminAuditLogs { get; }
+    IUserSuspensionRepository UserSuspensions { get; }
+    IContentReportRepository ContentReports { get; }
+    ISystemConfigRepository SystemConfigs { get; }
+    IAdminDashboardStatRepository AdminDashboardStats { get; }
+    IAdminSessionRepository AdminSessions { get; }
 
     // ============================================
     // OPERACIONES DE ESCRITURA

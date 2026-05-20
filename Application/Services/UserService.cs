@@ -170,7 +170,7 @@ public class UserService(
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Intentando eliminar usuario con ID: {UserId}", userId);
+            logger.LogInformation("Intentando soft-delete usuario con ID: {UserId}", userId);
         }
 
         var user = unitOfWork.Users.GetById(userId);
@@ -184,12 +184,42 @@ public class UserService(
             throw new ResourceNotFoundException("usuario", userId);
         }
 
-        unitOfWork.Delete(user);
+        user.DeletedAt = DateTimeHelper.UtcNow();
+        unitOfWork.Update(user);
         await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Usuario eliminado exitosamente con ID: {UserId}", userId);
+            logger.LogInformation("Usuario soft-deleted exitosamente con ID: {UserId}", userId);
+        }
+    }
+
+    public async Task Restore(Guid userId)
+    {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Intentando restaurar usuario con ID: {UserId}", userId);
+        }
+
+        var user = unitOfWork.Users.GetById(userId);
+
+        if (user is null)
+        {
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Usuario no encontrado para restaurar: {UserId}", userId);
+            }
+            throw new ResourceNotFoundException("usuario", userId);
+        }
+
+        user.DeletedAt = null;
+        user.DeletedByAdminId = null;
+        unitOfWork.Update(user);
+        await unitOfWork.SaveChangesAsync();
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Usuario restaurado exitosamente con ID: {UserId}", userId);
         }
     }
 

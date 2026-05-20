@@ -10,6 +10,9 @@ public class PostDto
     public string Content { get; set; } = null!;
     public Guid? RepliedToPostId { get; set; }
     public bool IsPublished { get; set; }
+    public int ReportCount { get; set; }
+    public bool IsFlagged { get; set; }
+    public string? DeletedReason { get; set; }
     public int LikesCount { get; set; }
     public int RetweetsCount { get; set; }
     public int RepliesCount { get; set; }

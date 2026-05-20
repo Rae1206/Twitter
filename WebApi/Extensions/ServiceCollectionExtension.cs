@@ -51,11 +51,25 @@ public static class ServiceCollectionExtension
         services.AddScoped<IAuthRepository, AuthRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IEmailTemplateRepository, EmailTemplateRepository>();
+        services.AddScoped<IPermissionRepository, PermissionRepository>();
+        services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
+        services.AddScoped<IAdminAuditLogRepository, AdminAuditLogRepository>();
+        services.AddScoped<IUserSuspensionRepository, UserSuspensionRepository>();
+        services.AddScoped<IContentReportRepository, ContentReportRepository>();
+        services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
+        services.AddScoped<IAdminDashboardStatRepository, AdminDashboardStatRepository>();
+        services.AddScoped<IAdminSessionRepository, AdminSessionRepository>();
 
         // 6. Servicios de Application
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPostService, PostService>();
+        services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<ISuspensionService, SuspensionService>();
+        services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IConfigService, ConfigService>();
+        services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         // 7. Email
         services.AddSingleton<SMTP>();

@@ -36,6 +36,26 @@ public class EmailService : IEmailService
         await SendTemplateEmailAsync(EmailTemplateConstants.PasswordReset, email, new { fullName, email, otp });
     }
 
+    public async Task SendAccountSuspendedAsync(string email, string fullName, string reason, DateTime? endsAt)
+    {
+        await SendTemplateEmailAsync(EmailTemplateConstants.AccountSuspended, email, new { fullName, email, reason, endsAt });
+    }
+
+    public async Task SendAccountBannedPermanentAsync(string email, string fullName, string reason)
+    {
+        await SendTemplateEmailAsync(EmailTemplateConstants.AccountBannedPermanent, email, new { fullName, email, reason });
+    }
+
+    public async Task SendAccountRestoredAsync(string email, string fullName)
+    {
+        await SendTemplateEmailAsync(EmailTemplateConstants.AccountRestored, email, new { fullName, email });
+    }
+
+    public async Task SendPostRemovedAsync(string email, string fullName, string reason)
+    {
+        await SendTemplateEmailAsync(EmailTemplateConstants.PostRemoved, email, new { fullName, email, reason });
+    }
+
     private async Task SendTemplateEmailAsync(string templateName, string to, object variables)
     {
         try

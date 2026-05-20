@@ -15,6 +15,16 @@ public partial class User
 
     public bool IsActive { get; set; }
 
+    public bool IsSuspended { get; set; }
+
+    public DateTime? SuspendedUntil { get; set; }
+
+    public bool IsShadowBanned { get; set; }
+
+    public DateTime? DeletedAt { get; set; }
+
+    public Guid? DeletedByAdminId { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
