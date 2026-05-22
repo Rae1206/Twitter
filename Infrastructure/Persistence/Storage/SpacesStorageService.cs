@@ -16,6 +16,8 @@ public class SpacesStorageService : IMediaStorageService
     private readonly IAmazonS3 _s3Client;
     private readonly string _bucket;
     private readonly string _publicBaseUrl;
+    private readonly string _serviceUrl;
+    private readonly string _signingRegion;
     private readonly ILogger<SpacesStorageService> _logger;
 
     public SpacesStorageService(IConfiguration configuration, ILogger<SpacesStorageService> logger)
@@ -37,30 +39,65 @@ public class SpacesStorageService : IMediaStorageService
         var secretKey = configuration["Storage:Spaces:SecretKey"]
             ?? throw new InvalidOperationException("Storage:Spaces:SecretKey is required for DigitalOcean Spaces provider");
 
+        var configuredRegion = configuration["Storage:Spaces:Region"];
+        var endpointUri = NormalizeEndpoint(endpoint, _bucket);
+
+        _serviceUrl = endpointUri.GetLeftPart(UriPartial.Authority);
+        _signingRegion = ResolveSigningRegion(configuredRegion, endpointUri.Host);
+        _publicBaseUrl = NormalizePublicBaseUrl(_publicBaseUrl);
+
         var s3Config = new AmazonS3Config
         {
-            ServiceURL = endpoint,
-            // DigitalOcean Spaces is S3-compatible but does not require AWS signature v4 region resolution.
-            // Using a minimal config with ServiceURL is sufficient.
+            ServiceURL = _serviceUrl,
+            AuthenticationRegion = _signingRegion,
+            AuthenticationServiceName = "s3",
+            SignatureVersion = "4",
+            ForcePathStyle = false,
+            UseHttp = endpointUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase),
+            DisableMultiregionAccessPoints = true
         };
 
         _s3Client = new AmazonS3Client(accessKey, secretKey, s3Config);
+
+        _logger.LogInformation(
+            "Configured DigitalOcean Spaces client with endpoint {Endpoint}, bucket {Bucket}, signing region {SigningRegion}, path style {ForcePathStyle}",
+            _serviceUrl,
+            _bucket,
+            _signingRegion,
+            s3Config.ForcePathStyle);
     }
 
     public async Task<string> SaveAsync(Stream fileStream, string fileName, string mediaTypeFolder)
     {
         var objectKey = GenerateRelativePath(mediaTypeFolder, fileName);
+        var contentType = InferContentType(fileName);
+
+        _logger.LogInformation(
+            "Uploading media to Spaces bucket {Bucket} using endpoint {Endpoint}. Key: {Key}, ContentType: {ContentType}",
+            _bucket,
+            _serviceUrl,
+            objectKey,
+            contentType);
 
         var putRequest = new PutObjectRequest
         {
             BucketName = _bucket,
             Key = objectKey,
             InputStream = fileStream,
-            ContentType = InferContentType(fileName),
+            ContentType = contentType,
             CannedACL = S3CannedACL.PublicRead
         };
 
-        var response = await _s3Client.PutObjectAsync(putRequest);
+        PutObjectResponse response;
+        try
+        {
+            response = await _s3Client.PutObjectAsync(putRequest);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            LogSpacesError(ex, "upload", objectKey);
+            throw;
+        }
 
         if (response.HttpStatusCode != System.Net.HttpStatusCode.OK)
         {
@@ -73,13 +110,28 @@ public class SpacesStorageService : IMediaStorageService
 
     public async Task<Stream> GetFileStreamAsync(string storagePath)
     {
+        _logger.LogInformation(
+            "Downloading media from Spaces bucket {Bucket} using endpoint {Endpoint}. Key: {Key}",
+            _bucket,
+            _serviceUrl,
+            storagePath);
+
         var getRequest = new GetObjectRequest
         {
             BucketName = _bucket,
             Key = storagePath
         };
 
-        var response = await _s3Client.GetObjectAsync(getRequest);
+        GetObjectResponse response;
+        try
+        {
+            response = await _s3Client.GetObjectAsync(getRequest);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            LogSpacesError(ex, "download", storagePath);
+            throw;
+        }
 
         // Copy S3 stream to a MemoryStream so the caller can dispose independently.
         var memoryStream = new MemoryStream();
@@ -90,13 +142,28 @@ public class SpacesStorageService : IMediaStorageService
 
     public async Task DeleteAsync(string storagePath)
     {
+        _logger.LogInformation(
+            "Deleting media from Spaces bucket {Bucket} using endpoint {Endpoint}. Key: {Key}",
+            _bucket,
+            _serviceUrl,
+            storagePath);
+
         var deleteRequest = new DeleteObjectRequest
         {
             BucketName = _bucket,
             Key = storagePath
         };
 
-        await _s3Client.DeleteObjectAsync(deleteRequest);
+        try
+        {
+            await _s3Client.DeleteObjectAsync(deleteRequest);
+        }
+        catch (AmazonS3Exception ex)
+        {
+            LogSpacesError(ex, "delete", storagePath);
+            throw;
+        }
+
         _logger.LogInformation("Deleted object from Spaces: {Bucket}/{Key}", _bucket, storagePath);
     }
 
@@ -112,6 +179,71 @@ public class SpacesStorageService : IMediaStorageService
     {
         var url = $"{_publicBaseUrl.TrimEnd('/')}/{storagePath}";
         return Task.FromResult(url);
+    }
+
+    private void LogSpacesError(AmazonS3Exception ex, string operation, string objectKey)
+    {
+        _logger.LogError(
+            ex,
+            "Spaces {Operation} failed. Endpoint: {Endpoint}, Bucket: {Bucket}, Key: {Key}, SigningRegion: {SigningRegion}, StatusCode: {StatusCode}, ErrorCode: {ErrorCode}, RequestId: {RequestId}, HostId: {HostId}",
+            operation,
+            _serviceUrl,
+            _bucket,
+            objectKey,
+            _signingRegion,
+            ex.StatusCode,
+            ex.ErrorCode,
+            ex.RequestId,
+            ex.AmazonId2);
+    }
+
+    private static Uri NormalizeEndpoint(string endpoint, string bucket)
+    {
+        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri))
+        {
+            throw new InvalidOperationException("Storage:Spaces:Endpoint must be a valid absolute URL");
+        }
+
+        var normalizedHost = endpointUri.Host;
+        var bucketPrefix = $"{bucket}.";
+
+        if (normalizedHost.StartsWith(bucketPrefix, StringComparison.OrdinalIgnoreCase)
+            && normalizedHost.Contains(".digitaloceanspaces.com", StringComparison.OrdinalIgnoreCase))
+        {
+            normalizedHost = normalizedHost[bucketPrefix.Length..];
+        }
+
+        return new UriBuilder(endpointUri.Scheme, normalizedHost, endpointUri.IsDefaultPort ? -1 : endpointUri.Port).Uri;
+    }
+
+    private static string NormalizePublicBaseUrl(string publicBaseUrl)
+    {
+        if (!Uri.TryCreate(publicBaseUrl, UriKind.Absolute, out var publicBaseUri))
+        {
+            throw new InvalidOperationException("Storage:Spaces:PublicBaseUrl must be a valid absolute URL");
+        }
+
+        return publicBaseUri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+    }
+
+    private static string ResolveSigningRegion(string? configuredRegion, string endpointHost)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredRegion))
+        {
+            return configuredRegion.Trim();
+        }
+
+        const string spacesSuffix = ".digitaloceanspaces.com";
+        if (endpointHost.EndsWith(spacesSuffix, StringComparison.OrdinalIgnoreCase))
+        {
+            var region = endpointHost[..^spacesSuffix.Length].Split('.', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(region))
+            {
+                return region;
+            }
+        }
+
+        return RegionEndpoint.USEast1.SystemName;
     }
 
     private static string InferContentType(string fileName)
