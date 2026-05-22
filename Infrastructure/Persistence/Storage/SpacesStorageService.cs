@@ -77,7 +77,6 @@ public class SpacesStorageService : IMediaStorageService
             Key = objectKey,
             InputStream = uploadStream,
             ContentType = contentType,
-            CannedACL = S3CannedACL.PublicRead,
             AutoCloseStream = false,
             AutoResetStreamPosition = false,
             UseChunkEncoding = false
