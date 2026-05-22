@@ -61,21 +61,28 @@ public class SpacesStorageService : IMediaStorageService
     {
         var objectKey = GenerateRelativePath(mediaTypeFolder, fileName);
         var contentType = InferContentType(fileName);
+        await using var uploadStream = await PrepareUploadStreamAsync(fileStream);
 
         _logger.LogInformation(
-            "Uploading media to Spaces bucket {Bucket} using endpoint {Endpoint}. Key: {Key}, ContentType: {ContentType}",
+            "Uploading media to Spaces bucket {Bucket} using endpoint {Endpoint}. Key: {Key}, ContentType: {ContentType}, ContentLength: {ContentLength}",
             _bucket,
             _serviceUrl,
             objectKey,
-            contentType);
+            contentType,
+            uploadStream.Length);
 
         var putRequest = new PutObjectRequest
         {
             BucketName = _bucket,
             Key = objectKey,
-            InputStream = fileStream,
-            ContentType = contentType
+            InputStream = uploadStream,
+            ContentType = contentType,
+            AutoCloseStream = false,
+            AutoResetStreamPosition = false,
+            UseChunkEncoding = false
         };
+
+        putRequest.Headers.ContentLength = uploadStream.Length;
 
         PutObjectResponse response;
         try
@@ -183,6 +190,24 @@ public class SpacesStorageService : IMediaStorageService
             ex.ErrorCode,
             ex.RequestId,
             ex.AmazonId2);
+    }
+
+    private static async Task<MemoryStream> PrepareUploadStreamAsync(Stream sourceStream)
+    {
+        if (sourceStream.CanSeek)
+        {
+            sourceStream.Position = 0;
+
+            var bufferedStream = new MemoryStream(sourceStream.Length > int.MaxValue ? 0 : (int)sourceStream.Length);
+            await sourceStream.CopyToAsync(bufferedStream);
+            bufferedStream.Position = 0;
+            return bufferedStream;
+        }
+
+        var uploadBuffer = new MemoryStream();
+        await sourceStream.CopyToAsync(uploadBuffer);
+        uploadBuffer.Position = 0;
+        return uploadBuffer;
     }
 
     private static Uri NormalizeEndpoint(string endpoint, string bucket)
