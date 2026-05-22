@@ -74,8 +74,7 @@ public class SpacesStorageService : IMediaStorageService
             BucketName = _bucket,
             Key = objectKey,
             InputStream = fileStream,
-            ContentType = contentType,
-            CannedACL = S3CannedACL.PublicRead
+            ContentType = contentType
         };
 
         PutObjectResponse response;
