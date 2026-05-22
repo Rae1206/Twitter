@@ -5,6 +5,7 @@
 
 # dotenv files
 .env
+.env.example
 
 # local secrets
 secret.json

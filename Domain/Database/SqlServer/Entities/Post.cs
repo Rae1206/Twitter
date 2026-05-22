@@ -26,4 +26,6 @@ public partial class Post
     public DateTime CreatedAt { get; set; }
 
     public virtual User User { get; set; } = null!;
+
+    public virtual ICollection<PostMedia> PostMedias { get; set; } = new List<PostMedia>();
 }

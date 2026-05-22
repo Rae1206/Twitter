@@ -4,7 +4,9 @@ using Application.Models.Requests.Post;
 using Application.Models.Responses;
 using Twitter.Domain.Database.SqlServer;
 using Twitter.Domain.Database.SqlServer.Entities;
+using Twitter.Domain.Database.SqlServer.Entities.Enums;
 using Microsoft.Extensions.Logging;
+using Shared.Constants;
 using Shared.Exceptions;
 using Shared.Helpers;
 
@@ -34,13 +36,19 @@ public class PostService(
         };
 
         unitOfWork.Create(entity);
+
+        if (model.MediaIds is { Count: > 0 })
+        {
+            await AssociateMediaAsync(entity.PostId, model.UserId, model.MediaIds);
+        }
+
         await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Post creado exitosamente con ID: {PostId}", entity.PostId);
         }
-        return MapToDto(entity);
+        return await MapToDtoAsync(entity);
     }
 
     public async Task<PostDto> Update(Guid postId, UpdatePostRequest model)
@@ -66,13 +74,19 @@ public class PostService(
             existing.UserId = model.UserId.Value;
 
         unitOfWork.Update(existing);
+
+        if (model.MediaIds is not null)
+        {
+            await ReplaceMediaAsync(postId, model.UserId ?? existing.UserId, model.MediaIds);
+        }
+
         await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Post actualizado exitosamente con ID: {PostId}", postId);
         }
-        return MapToDto(existing);
+        return await MapToDtoAsync(existing);
     }
 
     public GenericResponse<List<PostDto>> Get(int limit, int offset, Guid? userId = null, bool? isPublished = null)
@@ -84,7 +98,7 @@ public class PostService(
         }
 
         var posts = unitOfWork.Posts.GetAll(limit, offset, userId, isPublished);
-        var dtos = posts.Select(MapToDto).ToList();
+        var dtos = posts.Select(p => MapToDtoAsync(p).Result).ToList();
         return new GenericResponse<List<PostDto>> { Data = dtos };
     }
 
@@ -106,7 +120,7 @@ public class PostService(
             throw new ResourceNotFoundException("post", postId);
         }
 
-        return MapToDto(post);
+        return MapToDtoAsync(post).Result;
     }
 
     public async Task ChangeStatus(Guid postId, ChangePostStatusRequest model)
@@ -152,7 +166,16 @@ public class PostService(
             throw new ResourceNotFoundException("post", postId);
         }
 
-        unitOfWork.Delete(post);
+        post.DeletedAt = DateTimeHelper.UtcNow();
+        unitOfWork.Update(post);
+
+        var mediaList = await unitOfWork.PostMedias.GetByPostIdAsync(postId);
+        foreach (var media in mediaList)
+        {
+            media.IsDeleted = true;
+            unitOfWork.Update(media);
+        }
+
         await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
@@ -161,12 +184,75 @@ public class PostService(
         }
     }
 
-    private static PostDto MapToDto(Post entity) => new()
+    private async Task AssociateMediaAsync(Guid postId, Guid userId, List<Guid> mediaIds)
     {
-        PostId = entity.PostId,
-        UserId = entity.UserId,
-        Content = entity.Content,
-        IsPublished = entity.IsPublished,
-        CreatedAt = entity.CreatedAt
-    };
+        if (mediaIds.Count > MediaConstants.MaxMediaPerPost)
+        {
+            throw new ValidationException($"Máximo {MediaConstants.MaxMediaPerPost} archivos permitidos por publicación");
+        }
+
+        int audioCount = 0;
+        foreach (var mediaId in mediaIds)
+        {
+            var media = unitOfWork.PostMedias.GetById(mediaId);
+            if (media is null)
+            {
+                throw new ResourceNotFoundException("media", mediaId);
+            }
+
+            if (media.UserId != userId)
+            {
+                throw new ForbiddenException("No tiene permisos para usar este archivo");
+            }
+
+            if (media.PostId is not null)
+            {
+                throw new ConflictException("El archivo ya está asociado a otra publicación");
+            }
+
+            if (media.MediaType == MediaType.Audio)
+            {
+                audioCount++;
+            }
+
+            media.PostId = postId;
+            unitOfWork.Update(media);
+        }
+
+        if (audioCount > MediaConstants.MaxAudioPerPost)
+        {
+            throw new ValidationException($"Máximo {MediaConstants.MaxAudioPerPost} archivo de audio permitido por publicación");
+        }
+    }
+
+    private async Task ReplaceMediaAsync(Guid postId, Guid userId, List<Guid> mediaIds)
+    {
+        // Unlink existing media
+        var existingMedia = await unitOfWork.PostMedias.GetByPostIdAsync(postId);
+        foreach (var media in existingMedia)
+        {
+            media.PostId = null;
+            unitOfWork.Update(media);
+        }
+
+        // Link new media
+        if (mediaIds.Count > 0)
+        {
+            await AssociateMediaAsync(postId, userId, mediaIds);
+        }
+    }
+
+    private async Task<PostDto> MapToDtoAsync(Post entity)
+    {
+        var media = await unitOfWork.PostMedias.GetByPostIdAsync(entity.PostId);
+        return new PostDto
+        {
+            PostId = entity.PostId,
+            UserId = entity.UserId,
+            Content = entity.Content,
+            IsPublished = entity.IsPublished,
+            CreatedAt = entity.CreatedAt,
+            MediaUrls = media.Select(m => m.Url).ToList()
+        };
+    }
 }

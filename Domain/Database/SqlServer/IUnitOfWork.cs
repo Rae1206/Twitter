@@ -22,6 +22,7 @@ public interface IUnitOfWork
     ISystemConfigRepository SystemConfigs { get; }
     IAdminDashboardStatRepository AdminDashboardStats { get; }
     IAdminSessionRepository AdminSessions { get; }
+    IPostMediaRepository PostMedias { get; }
 
     // ============================================
     // OPERACIONES DE ESCRITURA

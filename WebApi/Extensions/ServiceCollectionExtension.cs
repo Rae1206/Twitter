@@ -3,8 +3,11 @@ using System.Text;
 using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Database.SqlServer;
 using Twitter.Domain.Interfaces.Repositories;
+using Twitter.Domain.Interfaces.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
+using Infrastructure.Persistence.Storage;
+using Infrastructure.Background;
 using Application.Interfaces.Services;
 using Application.Services;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +62,7 @@ public static class ServiceCollectionExtension
         services.AddScoped<ISystemConfigRepository, SystemConfigRepository>();
         services.AddScoped<IAdminDashboardStatRepository, AdminDashboardStatRepository>();
         services.AddScoped<IAdminSessionRepository, AdminSessionRepository>();
+        services.AddScoped<IPostMediaRepository, PostMediaRepository>();
 
         // 6. Servicios de Application
         services.AddScoped<IAuthService, AuthService>();
@@ -70,8 +74,23 @@ public static class ServiceCollectionExtension
         services.AddScoped<IConfigService, ConfigService>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IMediaService, MediaService>();
 
-        // 7. Email
+        // Storage provider selection: local (default) or digitalocean
+        var storageProvider = configuration["Storage:Provider"]?.ToLowerInvariant() ?? "local";
+        if (storageProvider == "digitalocean")
+        {
+            services.AddSingleton<IMediaStorageService, SpacesStorageService>();
+        }
+        else
+        {
+            services.AddSingleton<IMediaStorageService, LocalFileStorageService>();
+        }
+
+        // 7. Background services
+        services.AddHostedService<OrphanedMediaCleanupService>();
+
+        // 8. Email
         services.AddSingleton<SMTP>();
         services.AddScoped<IEmailService>(sp => new EmailService(
             sp.GetRequiredService<SMTP>(),

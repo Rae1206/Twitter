@@ -14,4 +14,6 @@ public class CreatePostRequest
     public string Content { get; set; } = null!;
 
     public bool? IsPublished { get; set; }
+
+    public List<Guid>? MediaIds { get; set; }
 }

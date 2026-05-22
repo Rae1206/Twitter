@@ -42,6 +42,8 @@ public partial class TwitterDbContext : DbContext
 
     public virtual DbSet<AdminSession> AdminSessions { get; set; }
 
+    public virtual DbSet<PostMedia> PostMedias { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Post>(entity =>
@@ -261,9 +263,32 @@ public partial class TwitterDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<PostMedia>(entity =>
+        {
+            entity.HasKey(e => e.MediaId).HasName("PK__PostMedias__6D6FDC4E8D93F157");
+
+            entity.HasIndex(e => e.PostId, "IX_PostMedias_PostId");
+            entity.HasIndex(e => e.UserId, "IX_PostMedias_UserId");
+            entity.HasIndex(e => e.CreatedAt, "IX_PostMedias_CreatedAt");
+
+            entity.Property(e => e.MediaId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.FileName).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.StoragePath).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Url).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+
+            entity.HasOne(d => d.Post).WithMany(p => p.PostMedias)
+                .HasForeignKey(d => d.PostId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.ToTable("PostMedia");
+        });
+
         // Global query filters for soft delete
         modelBuilder.Entity<User>().HasQueryFilter(u => u.DeletedAt == null);
         modelBuilder.Entity<Post>().HasQueryFilter(p => p.DeletedAt == null);
+        modelBuilder.Entity<PostMedia>().HasQueryFilter(m => !m.IsDeleted);
 
         OnModelCreatingPartial(modelBuilder);
     }

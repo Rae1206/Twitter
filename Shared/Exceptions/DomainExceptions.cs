@@ -87,3 +87,14 @@ public class AlreadyExistsException : Exception
         EntityType = "Unknown";
     }
 }
+
+/// <summary>
+/// Excepción lanzada cuando un archivo de media no pasa la validación.
+/// Se mapea a HTTP 400 Bad Request.
+/// </summary>
+public class MediaValidationException : Exception
+{
+    public MediaValidationException(string message) : base(message)
+    {
+    }
+}
