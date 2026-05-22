@@ -1,4 +1,3 @@
-using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
@@ -17,7 +16,6 @@ public class SpacesStorageService : IMediaStorageService
     private readonly string _bucket;
     private readonly string _publicBaseUrl;
     private readonly string _serviceUrl;
-    private readonly string _signingRegion;
     private readonly ILogger<SpacesStorageService> _logger;
 
     public SpacesStorageService(IConfiguration configuration, ILogger<SpacesStorageService> logger)
@@ -39,32 +37,24 @@ public class SpacesStorageService : IMediaStorageService
         var secretKey = configuration["Storage:Spaces:SecretKey"]
             ?? throw new InvalidOperationException("Storage:Spaces:SecretKey is required for DigitalOcean Spaces provider");
 
-        var configuredRegion = configuration["Storage:Spaces:Region"];
         var endpointUri = NormalizeEndpoint(endpoint, _bucket);
 
         _serviceUrl = endpointUri.GetLeftPart(UriPartial.Authority);
-        _signingRegion = ResolveSigningRegion(configuredRegion, endpointUri.Host);
         _publicBaseUrl = NormalizePublicBaseUrl(_publicBaseUrl);
 
         var s3Config = new AmazonS3Config
         {
             ServiceURL = _serviceUrl,
-            AuthenticationRegion = _signingRegion,
-            AuthenticationServiceName = "s3",
-            SignatureVersion = "4",
-            ForcePathStyle = false,
-            UseHttp = endpointUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase),
-            DisableMultiregionAccessPoints = true
+            UseHttp = endpointUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
         };
 
         _s3Client = new AmazonS3Client(accessKey, secretKey, s3Config);
 
         _logger.LogInformation(
-            "Configured DigitalOcean Spaces client with endpoint {Endpoint}, bucket {Bucket}, signing region {SigningRegion}, path style {ForcePathStyle}",
+            "Configured DigitalOcean Spaces client with endpoint {Endpoint}, bucket {Bucket}, use HTTP {UseHttp}",
             _serviceUrl,
             _bucket,
-            _signingRegion,
-            s3Config.ForcePathStyle);
+            s3Config.UseHttp);
     }
 
     public async Task<string> SaveAsync(Stream fileStream, string fileName, string mediaTypeFolder)
@@ -185,12 +175,11 @@ public class SpacesStorageService : IMediaStorageService
     {
         _logger.LogError(
             ex,
-            "Spaces {Operation} failed. Endpoint: {Endpoint}, Bucket: {Bucket}, Key: {Key}, SigningRegion: {SigningRegion}, StatusCode: {StatusCode}, ErrorCode: {ErrorCode}, RequestId: {RequestId}, HostId: {HostId}",
+            "Spaces {Operation} failed. Endpoint: {Endpoint}, Bucket: {Bucket}, Key: {Key}, StatusCode: {StatusCode}, ErrorCode: {ErrorCode}, RequestId: {RequestId}, HostId: {HostId}",
             operation,
             _serviceUrl,
             _bucket,
             objectKey,
-            _signingRegion,
             ex.StatusCode,
             ex.ErrorCode,
             ex.RequestId,
@@ -224,26 +213,6 @@ public class SpacesStorageService : IMediaStorageService
         }
 
         return publicBaseUri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
-    }
-
-    private static string ResolveSigningRegion(string? configuredRegion, string endpointHost)
-    {
-        if (!string.IsNullOrWhiteSpace(configuredRegion))
-        {
-            return configuredRegion.Trim();
-        }
-
-        const string spacesSuffix = ".digitaloceanspaces.com";
-        if (endpointHost.EndsWith(spacesSuffix, StringComparison.OrdinalIgnoreCase))
-        {
-            var region = endpointHost[..^spacesSuffix.Length].Split('.', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(region))
-            {
-                return region;
-            }
-        }
-
-        return RegionEndpoint.USEast1.SystemName;
     }
 
     private static string InferContentType(string fileName)
