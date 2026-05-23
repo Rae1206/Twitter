@@ -1,7 +1,9 @@
 using Twitter.Domain.Database.SqlServer;
+using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using WebApi.Extensions;
 using Microsoft.AspNetCore.HttpOverrides;
+using WebApi.Common;
 
 // Logger de arranque para errores durante el inicio
 Log.Logger = new LoggerConfiguration()
@@ -27,6 +29,10 @@ try
         options.KnownProxies.Clear();
     });
     builder.Services.AddControllers();
+    builder.Services.Configure<ApiBehaviorOptions>(options =>
+    {
+        options.InvalidModelStateResponseFactory = context => ApiResponseFactory.Validation(context.ModelState);
+    });
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddOpenApi();
     

@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Shared.Constants;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using WebApi.Extensions;
 
 namespace WebApi.Filters;
 
@@ -29,17 +29,13 @@ public class AdminAuditAttribute : Attribute, IActionFilter
             return; // Don't log failed actions
         }
 
-        if (context.Result is not Microsoft.AspNetCore.Mvc.OkObjectResult
-            && context.Result is not Microsoft.AspNetCore.Mvc.NoContentResult
-            && context.Result is not Microsoft.AspNetCore.Mvc.CreatedResult
-            && context.Result is not Microsoft.AspNetCore.Mvc.OkResult)
+        if (!IsSuccessfulResult(context.Result))
         {
             return; // Only log successful actions
         }
 
-        var user = context.HttpContext.User;
-        var userIdClaim = user.FindFirst(ClaimsConstants.USER_ID)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var adminId))
+        var adminId = context.HttpContext.User.TryGetUserId();
+        if (!adminId.HasValue)
         {
             return;
         }
@@ -60,12 +56,22 @@ public class AdminAuditAttribute : Attribute, IActionFilter
         {
             try
             {
-                await auditService.LogChangeAsync(adminId, _action, _entityType, entityId, null, null, reason: $"IP: {ip}, UA: {userAgent}");
+                await auditService.LogChangeAsync(adminId.Value, _action, _entityType, entityId, null, null, reason: $"IP: {ip}, UA: {userAgent}");
             }
             catch
             {
                 // Silently fail audit logging
             }
         });
+    }
+
+    private static bool IsSuccessfulResult(object? result)
+    {
+        return result switch
+        {
+            IStatusCodeActionResult { StatusCode: >= 200 and < 300 } => true,
+            null => false,
+            _ => false
+        };
     }
 }

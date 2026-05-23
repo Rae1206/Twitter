@@ -16,14 +16,14 @@ public class AdminPostController(
     IPostService postService,
     IUnitOfWork unitOfWork,
     IAuditService auditService,
-    IEmailService emailService) : ControllerBase
+    IEmailService emailService) : ApiControllerBase
 {
     [HttpGet("list")]
     [RequirePermission(PermissionConstants.PostsView)]
     public IActionResult ListPosts([FromQuery] int limit = 0, [FromQuery] int offset = 0, [FromQuery] Guid? userId = null)
     {
         var rsp = postService.Get(limit, offset, userId, null);
-        return Ok(rsp);
+        return OkEnvelope(rsp);
     }
 
     [HttpPost("{id:guid}/flag")]
@@ -33,14 +33,14 @@ public class AdminPostController(
         var post = unitOfWork.Posts.GetById(id);
         if (post is null)
         {
-            return NotFound();
+            return NotFoundEnvelope("Publicación no encontrada");
         }
 
         post.IsFlagged = true;
         unitOfWork.Update(post);
         await unitOfWork.SaveChangesAsync();
 
-        return NoContent();
+        return SuccessEnvelope("Publicación marcada correctamente");
     }
 
     [HttpDelete("{id:guid}")]
@@ -48,11 +48,11 @@ public class AdminPostController(
     [AdminAudit("SOFT_DELETE_POST", "Post")]
     public async Task<IActionResult> SoftDeletePost(Guid id, [FromQuery] string? reason = null)
     {
-        var adminId = GetAdminId();
+        var adminId = GetRequiredCurrentUserId();
         var post = unitOfWork.Posts.GetById(id);
         if (post is null)
         {
-            return NotFound();
+            return NotFoundEnvelope("Publicación no encontrada");
         }
 
         post.DeletedAt = DateTime.UtcNow;
@@ -66,7 +66,7 @@ public class AdminPostController(
             await emailService.SendPostRemovedAsync(post.User.Email, post.User.FullName, reason ?? "Violation of terms");
         }
 
-        return NoContent();
+        return SuccessEnvelope("Publicación eliminada correctamente");
     }
 
     [HttpPost("{id:guid}/restore")]
@@ -76,7 +76,7 @@ public class AdminPostController(
         var post = unitOfWork.Posts.GetById(id);
         if (post is null)
         {
-            return NotFound();
+            return NotFoundEnvelope("Publicación no encontrada");
         }
 
         post.DeletedAt = null;
@@ -85,13 +85,6 @@ public class AdminPostController(
         unitOfWork.Update(post);
         await unitOfWork.SaveChangesAsync();
 
-        return NoContent();
-    }
-
-    private Guid GetAdminId()
-    {
-        var claim = User.FindFirst(ClaimsConstants.USER_ID)?.Value
-            ?? throw new UnauthorizedAccessException(ResponseConstants.USER_NOT_EXISTS);
-        return Guid.Parse(claim);
+        return SuccessEnvelope("Publicación restaurada correctamente");
     }
 }

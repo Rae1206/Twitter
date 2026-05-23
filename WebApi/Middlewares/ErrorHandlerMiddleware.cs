@@ -1,6 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
+using Application.Models.Responses;
 using Shared.Constants;
 using Shared.Exceptions;
+using WebApi.Common;
 
 namespace WebApi.Middlewares;
 
@@ -43,70 +44,32 @@ public class ErrorHandlerMiddleware
     {
         var traceId = context.TraceIdentifier;
 
-        var problem = exception switch
+        var response = exception switch
         {
-            ResourceNotFoundException ex => new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Recurso no encontrado",
-                Detail = ex.Message
-            },
-            ValidationException ex => new ValidationProblemDetails(ex.Errors)
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Error de validación",
-                Detail = ex.Message
-            },
-            ConflictException ex => new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Conflicto",
-                Detail = ex.Message
-            },
-            AlreadyExistsException ex => new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Recurso ya existente",
-                Detail = ex.Message
-            },
-            ForbiddenException ex => new ProblemDetails
-            {
-                Status = StatusCodes.Status403Forbidden,
-                Title = "Acceso denegado",
-                Detail = ex.Message
-            },
-            KeyNotFoundException => new ProblemDetails
-            {
-                Status = StatusCodes.Status404NotFound,
-                Title = "Recurso no encontrado",
-                Detail = ErrorConstants.RESOURCE_NOT_FOUND      
-            },
-            ArgumentException => new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Argumento inválido",
-                Detail = exception.Message
-            },
-            UnauthorizedAccessException => new ProblemDetails
-            {
-                Status = StatusCodes.Status401Unauthorized,
-                Title = "No autorizado",
-                Detail = ErrorConstants.UNAUTHORIZED
-            },
-            _ => new ProblemDetails
-            {
-                Status = StatusCodes.Status500InternalServerError,
-                Title = "Error interno del servidor",
-                Detail = string.Format(ErrorConstants.UNEXPECTED_ERROR, traceId)
-            }
+            ResourceNotFoundException ex => Build(StatusCodes.Status404NotFound, ex.Message),
+            ValidationException ex => Build(StatusCodes.Status400BadRequest, ex.Message, FlattenValidationErrors(ex)),
+            ConflictException ex => Build(StatusCodes.Status409Conflict, ex.Message),
+            AlreadyExistsException ex => Build(StatusCodes.Status409Conflict, ex.Message),
+            ForbiddenException ex => Build(StatusCodes.Status403Forbidden, ex.Message),
+            KeyNotFoundException => Build(StatusCodes.Status404NotFound, ErrorConstants.RESOURCE_NOT_FOUND),
+            ArgumentException => Build(StatusCodes.Status400BadRequest, exception.Message),
+            UnauthorizedAccessException => Build(StatusCodes.Status401Unauthorized, ErrorConstants.UNAUTHORIZED),
+            _ => Build(StatusCodes.Status500InternalServerError, string.Format(ErrorConstants.UNEXPECTED_ERROR, traceId))
         };
 
-        problem.Extensions["traceId"] = traceId;
-        problem.Extensions["timestamp"] = DateTime.UtcNow.ToString("o");
+        response.Body.Errors.Add($"traceId:{traceId}");
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = response.StatusCode;
 
-        context.Response.ContentType = "application/problem+json";
-        context.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
+        await context.Response.WriteAsJsonAsync(response.Body);
+    }
 
-        await context.Response.WriteAsJsonAsync(problem);
+    private static (int StatusCode, GenericResponse<object?> Body) Build(int statusCode, string message, IEnumerable<string>? errors = null) =>
+        (statusCode, ApiResponseFactory.Error(message, errors));
+
+    private static List<string> FlattenValidationErrors(ValidationException exception)
+    {
+        var errors = exception.Errors.Values.SelectMany(value => value).Where(value => !string.IsNullOrWhiteSpace(value)).ToList();
+        return errors.Count == 0 ? [exception.Message] : errors;
     }
 }

@@ -6,62 +6,51 @@ namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class PostController(IPostService postService) : ControllerBase
+public class PostController(IPostService postService) : ApiControllerBase
 {
     [HttpPost("create")]
     public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest model)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
+        model.UserId = TryGetCurrentUserId() ?? model.UserId;
 
         var post = await postService.Create(model);
-        return CreatedAtAction(nameof(GetPostById), new { id = post.PostId }, post);
+        return CreatedEnvelope(nameof(GetPostById), new { id = post.PostId }, post);
     }
 
     [HttpGet("list")]
     public IActionResult GetAllPosts([FromQuery] GetAllPostRequest model)
     {
         var rsp = postService.Get(model.Limit ?? 0, model.Offset ?? 0, model.UserId, model.IsPublished);
-        return Ok(rsp);
+        return OkEnvelope(rsp);
     }
 
     [HttpGet("{id:guid}")]
     public IActionResult GetPostById(Guid id)
     {
         var post = postService.Get(id);
-        return Ok(post);
+        return OkEnvelope(post);
     }
 
     [HttpPut("{id:guid}/update")]
     public async Task<IActionResult> UpdatePost([FromBody] UpdatePostRequest model, Guid id)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
+        model.UserId ??= TryGetCurrentUserId();
 
         var post = await postService.Update(id, model);
-        return Ok(post);
+        return OkEnvelope(post);
     }
 
     [HttpPatch("{id:guid}/change-status")]
     public async Task<IActionResult> ChangePostStatus(Guid id, [FromBody] ChangePostStatusRequest model)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
         await postService.ChangeStatus(id, model);
-        return NoContent();
+        return SuccessEnvelope("Estado de la publicación actualizado correctamente");
     }
 
     [HttpDelete("{id:guid}/delete")]
     public async Task<IActionResult> DeletePost(Guid id)
     {
         await postService.Delete(id);
-        return NoContent();
+        return SuccessEnvelope("Publicación eliminada correctamente");
     }
 }

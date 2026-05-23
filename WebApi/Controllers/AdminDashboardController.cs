@@ -11,14 +11,14 @@ namespace WebApi.Controllers;
 [Authorize]
 [RequireNotSuspended]
 public class AdminDashboardController(
-    IDashboardService dashboardService) : ControllerBase
+    IDashboardService dashboardService) : ApiControllerBase
 {
     [HttpGet("stats")]
     [RequirePermission(PermissionConstants.DashboardView)]
     public IActionResult GetStats()
     {
         var rsp = dashboardService.GetStatsAsync();
-        return Ok(rsp);
+        return OkEnvelope(rsp);
     }
 
     [HttpPost("recalculate")]
@@ -26,6 +26,6 @@ public class AdminDashboardController(
     public async Task<IActionResult> RecalculateStats()
     {
         await dashboardService.RecalculateStatsAsync();
-        return NoContent();
+        return SuccessEnvelope("Estadísticas recalculadas correctamente");
     }
 }

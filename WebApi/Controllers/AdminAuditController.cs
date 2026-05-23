@@ -11,7 +11,7 @@ namespace WebApi.Controllers;
 [Authorize]
 [RequireNotSuspended]
 public class AdminAuditController(
-    IAuditService auditService) : ControllerBase
+    IAuditService auditService) : ApiControllerBase
 {
     [HttpGet("logs")]
     [RequirePermission(PermissionConstants.AuditView)]
@@ -25,6 +25,6 @@ public class AdminAuditController(
         [FromQuery] DateTime? dateTo = null)
     {
         var rsp = auditService.GetAuditLogsAsync(limit, offset, adminUserId, action, entityType, dateFrom, dateTo);
-        return Ok(rsp);
+        return OkEnvelope(rsp);
     }
 }

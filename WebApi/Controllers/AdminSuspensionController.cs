@@ -13,25 +13,25 @@ namespace WebApi.Controllers;
 [RequireNotSuspended]
 public class AdminSuspensionController(
     ISuspensionService suspensionService,
-    IAuditService auditService) : ControllerBase
+    IAuditService auditService) : ApiControllerBase
 {
     [HttpPost("suspend")]
     [RequirePermission(PermissionConstants.UsersBan)]
     [AdminAudit("SUSPEND_USER", "User")]
     public async Task<IActionResult> SuspendUser([FromBody] SuspendUserRequest model)
     {
-        var adminId = GetAdminId();
+        var adminId = GetRequiredCurrentUserId();
         var suspension = await suspensionService.SuspendAsync(model.UserId, adminId, model.SuspensionType, model.Reason, model.EndsAt);
-        return Ok(suspension);
+        return OkEnvelope(suspension);
     }
 
     [HttpPost("lift")]
     [RequirePermission(PermissionConstants.UsersBan)]
     public async Task<IActionResult> LiftSuspension([FromBody] LiftSuspensionRequest model)
     {
-        var adminId = GetAdminId();
+        var adminId = GetRequiredCurrentUserId();
         var suspension = await suspensionService.LiftSuspensionAsync(model.SuspensionId, adminId);
-        return Ok(suspension);
+        return OkEnvelope(suspension);
     }
 
     [HttpGet("history/{userId:guid}")]
@@ -39,14 +39,7 @@ public class AdminSuspensionController(
     public IActionResult GetSuspensionHistory(Guid userId, [FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
         var rsp = suspensionService.GetSuspensionHistoryAsync(userId, limit, offset);
-        return Ok(rsp);
-    }
-
-    private Guid GetAdminId()
-    {
-        var claim = User.FindFirst(ClaimsConstants.USER_ID)?.Value
-            ?? throw new UnauthorizedAccessException(ResponseConstants.USER_NOT_EXISTS);
-        return Guid.Parse(claim);
+        return OkEnvelope(rsp);
     }
 }
 

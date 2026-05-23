@@ -12,14 +12,14 @@ namespace WebApi.Controllers;
 [RequireNotSuspended]
 public class AdminConfigController(
     IConfigService configService,
-    IAuditService auditService) : ControllerBase
+    IAuditService auditService) : ApiControllerBase
 {
     [HttpGet("all")]
     [RequirePermission(PermissionConstants.ConfigView)]
     public IActionResult GetAllConfigs()
     {
         var rsp = configService.GetAllConfigsAsync();
-        return Ok(rsp);
+        return OkEnvelope(rsp);
     }
 
     [HttpGet("{key}")]
@@ -29,25 +29,18 @@ public class AdminConfigController(
         var config = await configService.GetConfigAsync(key);
         if (config is null)
         {
-            return NotFound();
+            return NotFoundEnvelope($"No se encontró la configuración '{key}'");
         }
-        return Ok(config);
+        return OkEnvelope(config);
     }
 
     [HttpPut("{key}")]
     [RequirePermission(PermissionConstants.ConfigEdit)]
     public async Task<IActionResult> UpdateConfig(string key, [FromBody] UpdateConfigRequest model)
     {
-        var adminId = GetAdminId();
+        var adminId = GetRequiredCurrentUserId();
         var config = await configService.UpdateConfigAsync(key, model.Value, adminId);
-        return Ok(config);
-    }
-
-    private Guid GetAdminId()
-    {
-        var claim = User.FindFirst(ClaimsConstants.USER_ID)?.Value
-            ?? throw new UnauthorizedAccessException(ResponseConstants.USER_NOT_EXISTS);
-        return Guid.Parse(claim);
+        return OkEnvelope(config);
     }
 }
 

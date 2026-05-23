@@ -1,8 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Shared.Constants;
 using Twitter.Domain.Database.SqlServer;
+using WebApi.Common;
+using WebApi.Extensions;
 
 namespace WebApi.Attributes;
 
@@ -17,8 +17,8 @@ public class RequireNotSuspendedAttribute : Attribute, IAuthorizationFilter
             return; // Let [Authorize] handle unauthenticated
         }
 
-        var userIdClaim = user.FindFirst(ClaimsConstants.USER_ID)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        var userId = user.TryGetUserId();
+        if (!userId.HasValue)
         {
             return;
         }
@@ -29,13 +29,10 @@ public class RequireNotSuspendedAttribute : Attribute, IAuthorizationFilter
             return;
         }
 
-        var activeSuspension = unitOfWork.UserSuspensions.GetActiveSuspensionAsync(userId).Result;
+        var activeSuspension = unitOfWork.UserSuspensions.GetActiveSuspensionAsync(userId.Value).Result;
         if (activeSuspension is not null)
         {
-            context.Result = new ObjectResult(new { error = "Your account is suspended." })
-            {
-                StatusCode = StatusCodes.Status403Forbidden
-            };
+            context.Result = ApiResponseFactory.Forbidden("Tu cuenta está suspendida.");
         }
     }
 }

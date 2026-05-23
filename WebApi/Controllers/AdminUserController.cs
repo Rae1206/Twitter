@@ -1,5 +1,4 @@
 using Application.Interfaces.Services;
-using Application.Models.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Constants;
@@ -15,14 +14,14 @@ namespace WebApi.Controllers;
 public class AdminUserController(
     IAdminService adminService,
     IAuditService auditService,
-    ICacheService cacheService) : ControllerBase
+    ICacheService cacheService) : ApiControllerBase
 {
     [HttpGet("list")]
     [RequirePermission(PermissionConstants.UsersView)]
     public IActionResult ListUsers([FromQuery] int limit = 0, [FromQuery] int offset = 0, [FromQuery] string? fullName = null, [FromQuery] string? email = null, [FromQuery] bool? includeDeleted = null)
     {
         var rsp = adminService.ListUsersAsync(limit, offset, fullName, email, includeDeleted);
-        return Ok(rsp);
+        return OkEnvelope(rsp);
     }
 
     [HttpDelete("{id:guid}")]
@@ -30,9 +29,9 @@ public class AdminUserController(
     [AdminAudit("SOFT_DELETE_USER", "User")]
     public async Task<IActionResult> SoftDeleteUser(Guid id, [FromQuery] string? reason = null)
     {
-        var adminId = GetAdminId();
+        var adminId = GetRequiredCurrentUserId();
         var user = await adminService.SoftDeleteUserAsync(id, adminId, reason);
-        return Ok(user);
+        return OkEnvelope(user);
     }
 
     [HttpPost("{id:guid}/restore")]
@@ -40,7 +39,7 @@ public class AdminUserController(
     public async Task<IActionResult> RestoreUser(Guid id)
     {
         var user = await adminService.RestoreUserAsync(id);
-        return Ok(user);
+        return OkEnvelope(user);
     }
 
     [HttpPost("{id:guid}/verify")]
@@ -48,7 +47,7 @@ public class AdminUserController(
     public async Task<IActionResult> VerifyUser(Guid id)
     {
         var user = await adminService.VerifyUserAsync(id);
-        return Ok(user);
+        return OkEnvelope(user);
     }
 
     [HttpDelete("{id:guid}/verify")]
@@ -56,7 +55,7 @@ public class AdminUserController(
     public async Task<IActionResult> UnverifyUser(Guid id)
     {
         var user = await adminService.UnverifyUserAsync(id);
-        return Ok(user);
+        return OkEnvelope(user);
     }
 
     [HttpPut("{id:guid}/role")]
@@ -64,14 +63,7 @@ public class AdminUserController(
     public async Task<IActionResult> ChangeUserRole(Guid id, [FromBody] ChangeRoleRequest model)
     {
         var user = await adminService.ChangeUserRoleAsync(id, model.RoleId);
-        return Ok(user);
-    }
-
-    private Guid GetAdminId()
-    {
-        var claim = User.FindFirst(ClaimsConstants.USER_ID)?.Value
-            ?? throw new UnauthorizedAccessException(ResponseConstants.USER_NOT_EXISTS);
-        return Guid.Parse(claim);
+        return OkEnvelope(user);
     }
 }
 

@@ -7,18 +7,17 @@ namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class MediaController(IMediaService mediaService, IMediaStorageService storageService) : ControllerBase
+public class MediaController(IMediaService mediaService, IMediaStorageService storageService) : ApiControllerBase
 {
     [HttpPost("upload")]
     public async Task<IActionResult> UploadMedia(IFormFile file)
     {
         if (file == null || file.Length == 0)
         {
-            return BadRequest(new { message = "No se proporcionó un archivo" });
+            return BadRequestEnvelope("No se proporcionó un archivo");
         }
 
-        // TODO: Extract userId from authenticated claims when auth is wired
-        var userId = Guid.Empty;
+        var userId = TryGetCurrentUserId() ?? Guid.Empty;
         using var stream = file.OpenReadStream();
         var request = new UploadMediaRequest
         {
@@ -28,7 +27,7 @@ public class MediaController(IMediaService mediaService, IMediaStorageService st
             Length = file.Length
         };
         var result = await mediaService.UploadAsync(request, userId);
-        return Ok(result);
+        return OkEnvelope(result, "Archivo subido correctamente");
     }
 
     [HttpGet("{id:guid}")]
@@ -37,7 +36,7 @@ public class MediaController(IMediaService mediaService, IMediaStorageService st
         var media = await mediaService.GetByIdAsync(id);
         if (media == null)
         {
-            return NotFound();
+            return NotFoundEnvelope("Archivo no encontrado");
         }
 
         // If the media URL is absolute (external CDN like Spaces), redirect to avoid proxying large files.

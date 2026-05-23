@@ -12,14 +12,14 @@ namespace WebApi.Controllers;
 [RequireNotSuspended]
 public class AdminReportController(
     IReportService reportService,
-    IAuditService auditService) : ControllerBase
+    IAuditService auditService) : ApiControllerBase
 {
     [HttpGet("pending")]
     [RequirePermission(PermissionConstants.ReportsView)]
     public IActionResult GetPendingReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
         var rsp = reportService.GetReportsAsync("Pending", limit, offset);
-        return Ok(rsp);
+        return OkEnvelope(rsp);
     }
 
     [HttpGet("all")]
@@ -27,16 +27,16 @@ public class AdminReportController(
     public IActionResult GetAllReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
         var rsp = reportService.GetReportsAsync(null, limit, offset);
-        return Ok(rsp);
+        return OkEnvelope(rsp);
     }
 
     [HttpPost("create")]
     [RequirePermission(PermissionConstants.ReportsView)]
     public async Task<IActionResult> CreateReport([FromBody] CreateReportRequest model)
     {
-        var reporterId = GetAdminId();
+        var reporterId = GetRequiredCurrentUserId();
         var report = await reportService.CreateReportAsync(reporterId, model.TargetType, model.TargetId, model.Reason);
-        return CreatedAtAction(nameof(GetAllReports), new { }, report);
+        return CreatedEnvelope(nameof(GetAllReports), new { }, report);
     }
 
     [HttpPut("{id:guid}/assign")]
@@ -44,7 +44,7 @@ public class AdminReportController(
     public async Task<IActionResult> AssignReport(Guid id, [FromBody] AssignReportRequest model)
     {
         var report = await reportService.AssignReportAsync(id, model.AssignedTo);
-        return Ok(report);
+        return OkEnvelope(report);
     }
 
     [HttpPut("{id:guid}/resolve")]
@@ -52,7 +52,7 @@ public class AdminReportController(
     public async Task<IActionResult> ResolveReport(Guid id, [FromBody] ResolveReportRequest model)
     {
         var report = await reportService.ResolveReportAsync(id, model.Resolution);
-        return Ok(report);
+        return OkEnvelope(report);
     }
 
     [HttpPut("{id:guid}/dismiss")]
@@ -60,14 +60,7 @@ public class AdminReportController(
     public async Task<IActionResult> DismissReport(Guid id, [FromBody] DismissReportRequest model)
     {
         var report = await reportService.DismissReportAsync(id, model.Reason);
-        return Ok(report);
-    }
-
-    private Guid GetAdminId()
-    {
-        var claim = User.FindFirst(ClaimsConstants.USER_ID)?.Value
-            ?? throw new UnauthorizedAccessException(ResponseConstants.USER_NOT_EXISTS);
-        return Guid.Parse(claim);
+        return OkEnvelope(report);
     }
 }
 

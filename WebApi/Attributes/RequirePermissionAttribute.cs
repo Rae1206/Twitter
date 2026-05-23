@@ -1,9 +1,10 @@
-using System.Security.Claims;
 using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Shared.Constants;
 using Twitter.Domain.Database.SqlServer;
+using WebApi.Common;
+using WebApi.Extensions;
 
 namespace WebApi.Attributes;
 
@@ -22,32 +23,32 @@ public class RequirePermissionAttribute : Attribute, IAuthorizationFilter
         var user = context.HttpContext.User;
         if (!user.Identity?.IsAuthenticated ?? true)
         {
-            context.Result = new ForbidResult();
+            context.Result = ApiResponseFactory.Unauthorized("Debe autenticarse para acceder a este recurso");
             return;
         }
 
-        var userIdClaim = user.FindFirst(ClaimsConstants.USER_ID)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        var userId = user.TryGetUserId();
+        if (!userId.HasValue)
         {
-            context.Result = new ForbidResult();
+            context.Result = ApiResponseFactory.Unauthorized("No se pudo resolver el usuario autenticado");
             return;
         }
 
         var cacheService = context.HttpContext.RequestServices.GetService<ICacheService>();
         if (cacheService is null)
         {
-            context.Result = new ForbidResult();
+            context.Result = ApiResponseFactory.InternalServerError("No se pudo validar los permisos del usuario");
             return;
         }
 
-        var cacheKey = $"perm:{userId}";
+        var cacheKey = $"perm:{userId.Value}";
         var permissions = cacheService.Get<List<string>>(cacheKey);
 
         if (permissions is null)
         {
             // Fallback: resolve permissions from repository
             var unitOfWork = context.HttpContext.RequestServices.GetRequiredService<IUnitOfWork>();
-            var roleIds = unitOfWork.Roles.GetRolesByUserId(userId).Select(r => r.RoleId).ToList();
+            var roleIds = unitOfWork.Roles.GetRolesByUserId(userId.Value).Select(r => r.RoleId).ToList();
             var perms = new List<string>();
             foreach (var roleId in roleIds)
             {
@@ -60,10 +61,7 @@ public class RequirePermissionAttribute : Attribute, IAuthorizationFilter
 
         if (!permissions.Contains(_permission))
         {
-            context.Result = new ObjectResult(new { error = $"Permission '{_permission}' is required." })
-            {
-                StatusCode = StatusCodes.Status403Forbidden
-            };
+            context.Result = ApiResponseFactory.Forbidden($"El permiso '{_permission}' es requerido.");
         }
     }
 }

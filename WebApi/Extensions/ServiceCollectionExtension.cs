@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Shared;
 using Shared.Constants;
+using WebApi.Common;
 
 namespace WebApi.Extensions;
 
@@ -148,6 +149,23 @@ public static class ServiceCollectionExtension
                 // Validar roles desde el token
                 RoleClaimType = ClaimTypes.Role,
                 NameClaimType = ClaimTypes.Name
+            };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnChallenge = async context =>
+                {
+                    context.HandleResponse();
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsJsonAsync(ApiResponseFactory.Error("No autorizado"));
+                },
+                OnForbidden = async context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsJsonAsync(ApiResponseFactory.Error("Acceso denegado"));
+                }
             };
         });
 
