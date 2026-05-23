@@ -47,6 +47,7 @@ public class ErrorHandlerMiddleware
         var response = exception switch
         {
             ResourceNotFoundException ex => Build(StatusCodes.Status404NotFound, ex.Message),
+            Twitter.Domain.Exceptions.BadRequestException ex => Build(StatusCodes.Status400BadRequest, ex.Message),
             ValidationException ex => Build(StatusCodes.Status400BadRequest, ex.Message, FlattenValidationErrors(ex)),
             ConflictException ex => Build(StatusCodes.Status409Conflict, ex.Message),
             AlreadyExistsException ex => Build(StatusCodes.Status409Conflict, ex.Message),

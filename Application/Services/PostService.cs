@@ -97,8 +97,23 @@ public class PostService(
                 limit, offset, userId, isPublished);
         }
 
-        var posts = unitOfWork.Posts.GetAll(limit, offset, userId, isPublished);
-        var dtos = posts.Select(p => MapToDtoAsync(p).Result).ToList();
+        var query = unitOfWork.Posts.GetQueryable();
+
+        if (userId.HasValue)
+            query = query.Where(p => p.UserId == userId.Value);
+
+        if (isPublished.HasValue)
+            query = query.Where(p => p.IsPublished == isPublished.Value);
+
+        var normalizedOffset = Math.Max(offset, 0);
+        var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
+
+        var dtos = ProjectPostToDto(query)
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip(normalizedOffset)
+            .Take(normalizedLimit)
+            .ToList();
+
         return new GenericResponse<List<PostDto>> { Data = dtos };
     }
 
@@ -109,9 +124,10 @@ public class PostService(
             logger.LogDebug("Buscando post con ID: {PostId}", postId);
         }
 
-        var post = unitOfWork.Posts.GetById(postId);
+        var query = unitOfWork.Posts.GetQueryable().Where(p => p.PostId == postId);
+        var dto = ProjectPostToDto(query).FirstOrDefault();
 
-        if (post is null)
+        if (dto is null)
         {
             if (logger.IsEnabled(LogLevel.Warning))
             {
@@ -120,7 +136,7 @@ public class PostService(
             throw new ResourceNotFoundException("post", postId);
         }
 
-        return MapToDtoAsync(post).Result;
+        return dto;
     }
 
     public async Task ChangeStatus(Guid postId, ChangePostStatusRequest model)
@@ -242,17 +258,61 @@ public class PostService(
         }
     }
 
+    private IQueryable<PostDto> ProjectPostToDto(IQueryable<Post> query)
+    {
+        return query.Select(p => new PostDto
+        {
+            PostId = p.PostId,
+            UserId = p.UserId,
+            UserFullName = p.User != null ? p.User.FullName : string.Empty,
+            UserAvatar = null,
+            Username = p.User != null ? p.User.Email : string.Empty,
+            Content = p.Content,
+            RepliedToPostId = p.RepliedToPostId,
+            RetweetOfPostId = p.RetweetOfPostId,
+            IsPublished = p.IsPublished,
+            ReportCount = p.ReportCount,
+            IsFlagged = p.IsFlagged,
+            DeletedReason = p.DeletedReason,
+            LikesCount = p.Likes.Count(),
+            RetweetsCount = p.Retweets.Count(),
+            RepliesCount = p.Replies.Count(),
+            MediaUrls = p.PostMedias.Select(m => m.Url).ToList(),
+            CreatedAt = p.CreatedAt
+        });
+    }
+
     private async Task<PostDto> MapToDtoAsync(Post entity)
     {
-        var media = await unitOfWork.PostMedias.GetByPostIdAsync(entity.PostId);
-        return new PostDto
+        var query = unitOfWork.Posts.GetQueryable().Where(p => p.PostId == entity.PostId);
+        var dto = ProjectPostToDto(query).FirstOrDefault();
+
+        if (dto is null)
         {
-            PostId = entity.PostId,
-            UserId = entity.UserId,
-            Content = entity.Content,
-            IsPublished = entity.IsPublished,
-            CreatedAt = entity.CreatedAt,
-            MediaUrls = media.Select(m => m.Url).ToList()
-        };
+            var media = await unitOfWork.PostMedias.GetByPostIdAsync(entity.PostId);
+            var user = entity.User ?? unitOfWork.Users.GetById(entity.UserId);
+            dto = new PostDto
+            {
+                PostId = entity.PostId,
+                UserId = entity.UserId,
+                UserFullName = user?.FullName ?? string.Empty,
+                UserAvatar = null,
+                Username = user?.Email ?? string.Empty,
+                Content = entity.Content,
+                RepliedToPostId = entity.RepliedToPostId,
+                RetweetOfPostId = entity.RetweetOfPostId,
+                IsPublished = entity.IsPublished,
+                ReportCount = entity.ReportCount,
+                IsFlagged = entity.IsFlagged,
+                DeletedReason = entity.DeletedReason,
+                LikesCount = 0,
+                RetweetsCount = 0,
+                RepliesCount = 0,
+                MediaUrls = media.Select(m => m.Url).ToList(),
+                CreatedAt = entity.CreatedAt
+            };
+        }
+
+        return dto;
     }
 }

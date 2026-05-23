@@ -64,6 +64,7 @@ public static class ServiceCollectionExtension
         services.AddScoped<IAdminDashboardStatRepository, AdminDashboardStatRepository>();
         services.AddScoped<IAdminSessionRepository, AdminSessionRepository>();
         services.AddScoped<IPostMediaRepository, PostMediaRepository>();
+        services.AddScoped<ILikeRepository, LikeRepository>();
 
         // 6. Servicios de Application
         services.AddScoped<IAuthService, AuthService>();
@@ -76,6 +77,9 @@ public static class ServiceCollectionExtension
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IMediaService, MediaService>();
+        services.AddScoped<ICommentService, CommentService>();
+        services.AddScoped<ILikeService, LikeService>();
+        services.AddScoped<IRetweetService, RetweetService>();
 
         // Storage provider selection: local (default) or digitalocean
         var storageProvider = configuration["Storage:Provider"]?.ToLowerInvariant() ?? "local";

@@ -1,12 +1,19 @@
+using System;
+using System.Threading.Tasks;
 using Application.Interfaces.Services;
 using Application.Models.Requests.Post;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class PostController(IPostService postService) : ApiControllerBase
+public class PostController(
+    IPostService postService,
+    ILikeService likeService,
+    ICommentService commentService,
+    IRetweetService retweetService) : ApiControllerBase
 {
     [HttpPost("create")]
     public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest model)
@@ -52,5 +59,32 @@ public class PostController(IPostService postService) : ApiControllerBase
     {
         await postService.Delete(id);
         return SuccessEnvelope("Publicación eliminada correctamente");
+    }
+
+    [Authorize]
+    [HttpPost("{id:guid}/like")]
+    public async Task<IActionResult> ToggleLike(Guid id)
+    {
+        var userId = GetRequiredCurrentUserId();
+        await likeService.ToggleLike(id, userId);
+        return SuccessEnvelope("Reacción de me gusta procesada correctamente");
+    }
+
+    [Authorize]
+    [HttpPost("{id:guid}/comment")]
+    public async Task<IActionResult> CreateComment(Guid id, [FromBody] CreateCommentRequest model)
+    {
+        var userId = GetRequiredCurrentUserId();
+        var post = await commentService.CreateComment(id, userId, model);
+        return CreatedEnvelope(nameof(GetPostById), new { id = post.PostId }, post);
+    }
+
+    [Authorize]
+    [HttpPost("{id:guid}/retweet")]
+    public async Task<IActionResult> CreateRetweet(Guid id, [FromBody] CreateRetweetRequest model)
+    {
+        var userId = GetRequiredCurrentUserId();
+        var post = await retweetService.CreateRetweet(id, userId, model);
+        return CreatedEnvelope(nameof(GetPostById), new { id = post.PostId }, post);
     }
 }

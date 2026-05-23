@@ -1,3 +1,4 @@
+using System.Linq;
 using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Interfaces.Repositories;
@@ -11,6 +12,11 @@ public class PostRepository : GenericRepository<Post, Guid>, IPostRepository
 {
     public PostRepository(TwitterDbContext context) : base(context)
     {
+    }
+
+    public IQueryable<Post> GetQueryable()
+    {
+        return _context.Posts.AsQueryable();
     }
 
     public List<Post> GetAll(int limit, int offset, Guid? userId = null, bool? isPublished = null)

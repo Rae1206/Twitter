@@ -9,6 +9,7 @@ public class PostDto
     public string? Username { get; set; }
     public string Content { get; set; } = null!;
     public Guid? RepliedToPostId { get; set; }
+    public Guid? RetweetOfPostId { get; set; }
     public bool IsPublished { get; set; }
     public int ReportCount { get; set; }
     public bool IsFlagged { get; set; }

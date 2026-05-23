@@ -44,6 +44,8 @@ public partial class TwitterDbContext : DbContext
 
     public virtual DbSet<PostMedia> PostMedias { get; set; }
 
+    public virtual DbSet<Like> Likes { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Post>(entity =>
@@ -54,6 +56,10 @@ public partial class TwitterDbContext : DbContext
 
             entity.HasIndex(e => e.UserId, "IX_Posts_UserId");
 
+            entity.HasIndex(e => e.RepliedToPostId, "IX_Posts_RepliedToPostId");
+
+            entity.HasIndex(e => e.RetweetOfPostId, "IX_Posts_RetweetOfPostId");
+
             entity.Property(e => e.PostId).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.IsPublished).HasDefaultValue(true);
@@ -61,6 +67,14 @@ public partial class TwitterDbContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.Posts)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull);
+
+            entity.HasOne(d => d.RepliedToPost).WithMany(p => p.Replies)
+                .HasForeignKey(d => d.RepliedToPostId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.RetweetOfPost).WithMany(p => p.Retweets)
+                .HasForeignKey(d => d.RetweetOfPostId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Role>(entity =>
@@ -283,6 +297,27 @@ public partial class TwitterDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.ToTable("PostMedia");
+        });
+
+        modelBuilder.Entity<Like>(entity =>
+        {
+            entity.HasKey(e => e.LikeId).HasName("PK_Likes");
+
+            entity.HasIndex(e => new { e.UserId, e.PostId }, "IX_Likes_UserId_PostId").IsUnique();
+            entity.HasIndex(e => e.PostId, "IX_Likes_PostId");
+
+            entity.Property(e => e.LikeId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Likes)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.Post).WithMany(p => p.Likes)
+                .HasForeignKey(d => d.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable("Likes");
         });
 
         // Global query filters for soft delete

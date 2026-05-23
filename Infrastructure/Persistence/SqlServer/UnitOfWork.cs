@@ -26,6 +26,7 @@ public class UnitOfWork : IUnitOfWork
     public IAdminDashboardStatRepository AdminDashboardStats { get; }
     public IAdminSessionRepository AdminSessions { get; }
     public IPostMediaRepository PostMedias { get; }
+    public ILikeRepository Likes { get; }
 
     public UnitOfWork(
         TwitterDbContext context,
@@ -42,7 +43,8 @@ public class UnitOfWork : IUnitOfWork
         ISystemConfigRepository systemConfigRepository,
         IAdminDashboardStatRepository adminDashboardStatRepository,
         IAdminSessionRepository adminSessionRepository,
-        IPostMediaRepository postMediaRepository)
+        IPostMediaRepository postMediaRepository,
+        ILikeRepository likeRepository)
     {
         _context = context;
         Users = userRepository;
@@ -59,6 +61,7 @@ public class UnitOfWork : IUnitOfWork
         AdminDashboardStats = adminDashboardStatRepository;
         AdminSessions = adminSessionRepository;
         PostMedias = postMediaRepository;
+        Likes = likeRepository;
     }
 
     public void Create<T>(T entity) where T : class

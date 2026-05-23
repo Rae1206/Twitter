@@ -28,4 +28,18 @@ public partial class Post
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<PostMedia> PostMedias { get; set; } = new List<PostMedia>();
+
+    public Guid? RepliedToPostId { get; set; }
+
+    public virtual Post? RepliedToPost { get; set; }
+
+    public virtual ICollection<Post> Replies { get; set; } = new List<Post>();
+
+    public Guid? RetweetOfPostId { get; set; }
+
+    public virtual Post? RetweetOfPost { get; set; }
+
+    public virtual ICollection<Post> Retweets { get; set; } = new List<Post>();
+
+    public virtual ICollection<Like> Likes { get; set; } = new List<Like>();
 }

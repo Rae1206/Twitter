@@ -23,6 +23,7 @@ public interface IUnitOfWork
     IAdminDashboardStatRepository AdminDashboardStats { get; }
     IAdminSessionRepository AdminSessions { get; }
     IPostMediaRepository PostMedias { get; }
+    ILikeRepository Likes { get; }
 
     // ============================================
     // OPERACIONES DE ESCRITURA
