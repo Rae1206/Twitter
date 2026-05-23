@@ -19,8 +19,14 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString(DefaultConnection);
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("No SQL Server connection string has been configured.");
+        }
+
         services.AddDbContext<TwitterDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString(DefaultConnection)));
+            options.UseSqlServer(connectionString));
 
         return services;
     }

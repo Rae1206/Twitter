@@ -1,6 +1,8 @@
 using Application.Interfaces.Services;
 using Application.Models.Requests.Media;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Helpers;
 using Twitter.Domain.Interfaces.Services;
 
 namespace WebApi.Controllers;
@@ -9,15 +11,16 @@ namespace WebApi.Controllers;
 [ApiController]
 public class MediaController(IMediaService mediaService, IMediaStorageService storageService) : ApiControllerBase
 {
+    [Authorize]
     [HttpPost("upload")]
-    public async Task<IActionResult> UploadMedia(IFormFile file)
+    public async Task<IActionResult> UploadMedia([FromForm] IFormFile file)
     {
         if (file == null || file.Length == 0)
         {
             return BadRequestEnvelope("No se proporcionó un archivo");
         }
 
-        var userId = TryGetCurrentUserId() ?? Guid.Empty;
+        var userId = GetRequiredCurrentUserId();
         using var stream = file.OpenReadStream();
         var request = new UploadMediaRequest
         {
@@ -46,26 +49,6 @@ public class MediaController(IMediaService mediaService, IMediaStorageService st
         }
 
         var stream = await storageService.GetFileStreamAsync(media.StoragePath);
-        return File(stream, GetContentType(media.FileName), media.FileName);
-    }
-
-    private static string GetContentType(string fileName)
-    {
-        var ext = Path.GetExtension(fileName).ToLowerInvariant();
-        return ext switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".webp" => "image/webp",
-            ".gif" => "image/gif",
-            ".mp3" => "audio/mpeg",
-            ".wav" => "audio/wav",
-            ".ogg" => "audio/ogg",
-            ".mp4" => "video/mp4",
-            ".mov" => "video/quicktime",
-            ".webm" => "video/webm",
-            ".m4v" => "video/x-m4v",
-            _ => "application/octet-stream"
-        };
+        return File(stream, MediaContentTypeHelper.InferFromFileName(media.FileName), media.FileName);
     }
 }

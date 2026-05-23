@@ -33,9 +33,15 @@ public static class ServiceCollectionExtension
         IConfiguration configuration)
     {
         // 1. DbContext con SQL Server ( Render用__)
-        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? configuration.GetConnectionString("DefaultConnection")
-            ?? Environment.GetEnvironmentVariable("CONNECTION_STRING_DATABASE");
+        var connectionString = FirstNonEmpty(
+            Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection"),
+            configuration.GetConnectionString("DefaultConnection"),
+            Environment.GetEnvironmentVariable("CONNECTION_STRING_DATABASE"));
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("No SQL Server connection string has been configured.");
+        }
 
         services.AddDbContext<TwitterDbContext>(options =>
             options.UseSqlServer(connectionString));
@@ -175,4 +181,7 @@ public static class ServiceCollectionExtension
 
         services.AddAuthorization();
     }
+
+    private static string? FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 }

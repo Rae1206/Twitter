@@ -1,8 +1,11 @@
 using Application.Interfaces.Services;
+using Application.Models.Requests.Media;
 using Application.Models.Requests.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Constants;
+using Shared.Helpers;
+using Twitter.Domain.Interfaces.Services;
 using Twitter.WebApi.Atributos;
 using WebApi.Attributes;
 
@@ -12,7 +15,10 @@ namespace WebApi.Controllers;
 [DeveloperAuthor(Name = "ALEX", Description = "Controller fo users")]
 [ApiController]
 
-public class UserController(IUserService userService, IEmailService emailService) : ApiControllerBase
+public class UserController(
+    IUserService userService,
+    IEmailService emailService,
+    IMediaStorageService mediaStorageService) : ApiControllerBase
 {
     [HttpPost("test-email")]
     public async Task<IActionResult> TestEmail([FromQuery] string to)
@@ -50,11 +56,36 @@ public class UserController(IUserService userService, IEmailService emailService
         return OkEnvelope(user);
     }
 
-    [HttpPut("{id:guid}/update")]
-    public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest model, Guid id)
+    [Authorize]
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateCurrentUser([FromBody] UpdateUserRequest model)
     {
-        var user = await userService.Update(id, model);
+        var userId = GetRequiredCurrentUserId();
+        var user = await userService.UpdateProfile(userId, model);
         return OkEnvelope(user);
+    }
+
+    [Authorize]
+    [HttpPost("me/avatar")]
+    public async Task<IActionResult> UploadCurrentUserAvatar([FromForm] IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequestEnvelope("No se proporcionó una foto de perfil");
+        }
+
+        var userId = GetRequiredCurrentUserId();
+        await using var stream = file.OpenReadStream();
+        var request = new UploadMediaRequest
+        {
+            FileStream = stream,
+            FileName = file.FileName,
+            ContentType = file.ContentType,
+            Length = file.Length
+        };
+
+        var user = await userService.UploadProfilePhoto(userId, request);
+        return OkEnvelope(user, "Foto de perfil actualizada correctamente");
     }
 
     [Authorize]
@@ -82,5 +113,33 @@ public class UserController(IUserService userService, IEmailService emailService
         var userId = GetRequiredCurrentUserId();
         var user = userService.Get(userId);
         return OkEnvelope(user);
+    }
+
+    [HttpGet("{id:guid}/avatar")]
+    public async Task<IActionResult> GetUserAvatar(Guid id)
+    {
+        var userPhoto = userService.GetProfilePhoto(id);
+        var isAbsoluteUrl = Uri.IsWellFormedUriString(userPhoto.Url, UriKind.Absolute);
+
+        if (string.IsNullOrWhiteSpace(userPhoto.Url)
+            || (!isAbsoluteUrl && (string.IsNullOrWhiteSpace(userPhoto.FileName) || string.IsNullOrWhiteSpace(userPhoto.StoragePath))))
+        {
+            return NotFoundEnvelope("Foto de perfil no encontrada");
+        }
+
+        if (isAbsoluteUrl)
+        {
+            return Redirect(userPhoto.Url);
+        }
+
+        try
+        {
+            var stream = await mediaStorageService.GetFileStreamAsync(userPhoto.StoragePath!);
+            return File(stream, MediaContentTypeHelper.InferFromFileName(userPhoto.FileName!), userPhoto.FileName);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFoundEnvelope("Foto de perfil no encontrada");
+        }
     }
 }

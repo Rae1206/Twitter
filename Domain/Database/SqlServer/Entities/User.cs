@@ -13,6 +13,14 @@ public partial class User
 
     public string PasswordHash { get; set; } = null!;
 
+    public string? Biography { get; set; }
+
+    public string? ProfilePhotoFileName { get; set; }
+
+    public string? ProfilePhotoStoragePath { get; set; }
+
+    public string? ProfilePhotoUrl { get; set; }
+
     public bool IsActive { get; set; }
 
     public bool IsSuspended { get; set; }

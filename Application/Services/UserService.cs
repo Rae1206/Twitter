@@ -1,14 +1,17 @@
 using Application.Interfaces.Services;
 using Application.Models.DTOs;
+using Application.Models.Requests.Media;
 using Application.Models.Requests.User;
 using Application.Models.Responses;
 using Twitter.Domain.Database.SqlServer;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Shared.Constants;
 using Shared.Exceptions;
 using Shared.Helpers;
 using BCrypt.Net;
+using Twitter.Domain.Interfaces.Services;
 
 namespace Application.Services;
 
@@ -18,8 +21,12 @@ namespace Application.Services;
 public class UserService(
     IUnitOfWork unitOfWork,
     IEmailService emailService,
+    IMediaStorageService mediaStorageService,
+    IConfiguration configuration,
     ILogger<UserService> logger) : IUserService
 {
+    private const string AvatarFolder = "avatars";
+
     public async Task<UserDto> Create(CreateUserRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -71,11 +78,11 @@ public class UserService(
         return MapToDto(entity);
     }
 
-    public async Task<UserDto> Update(Guid userId, UpdateUserRequest model)
+    public async Task<UserDto> UpdateProfile(Guid userId, UpdateUserRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Intentando actualizar usuario con ID: {UserId}", userId);
+            logger.LogInformation("Intentando actualizar el perfil del usuario con ID: {UserId}", userId);
         }
 
         var existing = unitOfWork.Users.GetById(userId);
@@ -89,8 +96,31 @@ public class UserService(
             throw new ResourceNotFoundException("usuario", userId);
         }
 
-        existing.FullName = model.FullName ?? existing.FullName;
-        existing.Email = model.Email ?? existing.Email;
+        var normalizedFullName = NormalizeOptionalProfileField(model.FullName, nameof(model.FullName));
+        var normalizedEmail = NormalizeOptionalProfileField(model.Email, nameof(model.Email));
+        var normalizedBiography = NormalizeBiography(model.Biography);
+
+        if (normalizedEmail is not null
+            && !string.Equals(existing.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase)
+            && unitOfWork.Users.ExistsByEmail(normalizedEmail))
+        {
+            throw new AlreadyExistsException("usuario", "email", normalizedEmail);
+        }
+
+        if (normalizedFullName is not null)
+        {
+            existing.FullName = normalizedFullName;
+        }
+
+        if (normalizedEmail is not null)
+        {
+            existing.Email = normalizedEmail;
+        }
+
+        if (model.Biography is not null)
+        {
+            existing.Biography = normalizedBiography;
+        }
 
         unitOfWork.Update(existing);
         await unitOfWork.SaveChangesAsync();
@@ -164,6 +194,67 @@ public class UserService(
         }
 
         await emailService.SendPasswordChangedNotificationAsync(user.Email, user.FullName);
+    }
+
+    public async Task<UserDto> UploadProfilePhoto(Guid userId, UploadMediaRequest request)
+    {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Intentando subir foto de perfil para usuario con ID: {UserId}", userId);
+        }
+
+        var user = unitOfWork.Users.GetById(userId);
+
+        if (user is null)
+        {
+            throw new ResourceNotFoundException("usuario", userId);
+        }
+
+        ValidateAvatarFile(request);
+
+        var previousStoragePath = user.ProfilePhotoStoragePath;
+        var fileName = Path.GetFileName(request.FileName);
+        var storagePath = await mediaStorageService.SaveAsync(request.FileStream, fileName, AvatarFolder);
+        var publicUrl = await ResolveProfilePhotoUrlAsync(userId, storagePath);
+
+        user.ProfilePhotoFileName = fileName;
+        user.ProfilePhotoStoragePath = storagePath;
+        user.ProfilePhotoUrl = publicUrl;
+
+        unitOfWork.Update(user);
+        await unitOfWork.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(previousStoragePath)
+            && !string.Equals(previousStoragePath, storagePath, StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await mediaStorageService.DeleteAsync(previousStoragePath);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "No se pudo eliminar la foto de perfil previa del usuario {UserId}", userId);
+            }
+        }
+
+        return MapToDto(user);
+    }
+
+    public UserProfilePhotoDto GetProfilePhoto(Guid userId)
+    {
+        var user = unitOfWork.Users.GetById(userId);
+
+        if (user is null)
+        {
+            throw new ResourceNotFoundException("usuario", userId);
+        }
+
+        return new UserProfilePhotoDto
+        {
+            FileName = user.ProfilePhotoFileName,
+            StoragePath = user.ProfilePhotoStoragePath,
+            Url = user.ProfilePhotoUrl
+        };
     }
 
     public async Task Delete(Guid userId)
@@ -240,8 +331,92 @@ public class UserService(
         UserId = entity.UserId,
         FullName = entity.FullName,
         Email = entity.Email,
+        Biography = entity.Biography,
+        ProfilePhotoUrl = entity.ProfilePhotoUrl,
+        ProfilePhotoFileName = entity.ProfilePhotoFileName,
         IsActive = entity.IsActive,
+        IsSuspended = entity.IsSuspended,
+        IsShadowBanned = entity.IsShadowBanned,
+        DeletedAt = entity.DeletedAt,
         CreatedAt = entity.CreatedAt,
         Roles = entity.UserRoles?.Select(ur => ur.Role?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>()
     };
+
+    private static void ValidateAvatarFile(UploadMediaRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.FileName))
+        {
+            throw new ValidationException("La foto de perfil debe incluir un nombre de archivo válido");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ContentType))
+        {
+            throw new ValidationException("La foto de perfil debe incluir un tipo MIME válido");
+        }
+
+        var fileName = Path.GetFileName(request.FileName);
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        var contentType = request.ContentType.ToLowerInvariant();
+        var maxSizeBytes = MediaConstants.MaxImageSizeMb * 1024 * 1024;
+
+        if (!MediaConstants.AllowedImageExtensions.Contains(extension))
+        {
+            throw new ValidationException($"Extensión no permitida para foto de perfil: {extension}");
+        }
+
+        if (!MediaConstants.AllowedImageMimeTypes.Contains(contentType))
+        {
+            throw new ValidationException($"Tipo MIME no permitido para foto de perfil: {request.ContentType}");
+        }
+
+        if (request.Length <= 0)
+        {
+            throw new ValidationException("La foto de perfil está vacía");
+        }
+
+        if (request.Length > maxSizeBytes)
+        {
+            throw new ValidationException($"La foto de perfil excede el tamaño máximo permitido de {MediaConstants.MaxImageSizeMb} MB");
+        }
+    }
+
+    private static string? NormalizeOptionalProfileField(string? value, string fieldName)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        var normalizedValue = value.Trim();
+
+        if (normalizedValue.Length == 0)
+        {
+            throw new ValidationException($"El campo {fieldName} no puede estar vacío");
+        }
+
+        return normalizedValue;
+    }
+
+    private static string? NormalizeBiography(string? biography)
+    {
+        if (biography is null)
+        {
+            return null;
+        }
+
+        var normalizedBiography = biography.Trim();
+        return normalizedBiography.Length == 0 ? null : normalizedBiography;
+    }
+
+    private async Task<string> ResolveProfilePhotoUrlAsync(Guid userId, string storagePath)
+    {
+        var storageProvider = configuration["Storage:Provider"]?.ToLowerInvariant() ?? "local";
+
+        if (storageProvider == "digitalocean")
+        {
+            return await mediaStorageService.GetPublicUrlAsync(storagePath, userId);
+        }
+
+        return $"/api/user/{userId}/avatar";
+    }
 }

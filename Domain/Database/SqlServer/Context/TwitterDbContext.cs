@@ -96,6 +96,10 @@ public partial class TwitterDbContext : DbContext
 
             entity.HasIndex(e => e.Email, "IX_Users_Email").IsUnique();
 
+            entity.Property(e => e.Biography).HasMaxLength(500);
+            entity.Property(e => e.ProfilePhotoFileName).HasMaxLength(255);
+            entity.Property(e => e.ProfilePhotoStoragePath).HasMaxLength(500);
+            entity.Property(e => e.ProfilePhotoUrl).HasMaxLength(1000);
             entity.Property(e => e.UserId).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Email).HasMaxLength(255);

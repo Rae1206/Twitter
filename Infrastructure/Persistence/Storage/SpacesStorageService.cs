@@ -2,6 +2,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Shared.Helpers;
 using Twitter.Domain.Interfaces.Services;
 
 namespace Infrastructure.Persistence.Storage;
@@ -240,22 +241,5 @@ public class SpacesStorageService : IMediaStorageService
     }
 
     private static string InferContentType(string fileName)
-    {
-        var ext = Path.GetExtension(fileName).ToLowerInvariant();
-        return ext switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".webp" => "image/webp",
-            ".gif" => "image/gif",
-            ".mp3" => "audio/mpeg",
-            ".wav" => "audio/wav",
-            ".ogg" => "audio/ogg",
-            ".mp4" => "video/mp4",
-            ".mov" => "video/quicktime",
-            ".webm" => "video/webm",
-            ".m4v" => "video/x-m4v",
-            _ => "application/octet-stream"
-        };
-    }
+        => MediaContentTypeHelper.InferFromFileName(fileName);
 }

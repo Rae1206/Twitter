@@ -13,4 +13,7 @@ public class UpdateUserRequest
     [MaxLength(255, ErrorMessage = ValidationConstants.MAX_LENGTH)]
     [MinLength(5, ErrorMessage = ValidationConstants.MIN_LENGTH)]
     public string? Email { get; set; }
+
+    [MaxLength(500, ErrorMessage = ValidationConstants.MAX_LENGTH)]
+    public string? Biography { get; set; }
 }
