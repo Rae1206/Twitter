@@ -19,6 +19,10 @@ public static void ConfigurePipeline(this WebApplication app)
         {
             app.UseHttpsRedirection();
         }
+
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+
         app.UseAuthentication();
         app.UseAuthorization();
         
@@ -30,5 +34,8 @@ public static void ConfigurePipeline(this WebApplication app)
 
         // Scalar UI
         app.MapScalarApiReference();
+
+        // SPA fallback for Angular routes served from wwwroot
+        app.MapFallbackToFile("/index.html");
     }
 }
