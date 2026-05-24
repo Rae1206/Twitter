@@ -123,17 +123,18 @@ public class MediaService(
     private static MediaType DetermineMediaType(string fileName, string contentType)
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        var normalizedContentType = NormalizeMimeType(contentType);
 
-        if (MediaConstants.AllowedImageExtensions.Contains(ext) || MediaConstants.AllowedImageMimeTypes.Contains(contentType))
+        if (MediaConstants.AllowedImageExtensions.Contains(ext) || MediaConstants.AllowedImageMimeTypes.Contains(normalizedContentType))
             return MediaType.Image;
 
-        if (MediaConstants.AllowedGifExtensions.Contains(ext) || MediaConstants.AllowedGifMimeTypes.Contains(contentType))
+        if (MediaConstants.AllowedGifExtensions.Contains(ext) || MediaConstants.AllowedGifMimeTypes.Contains(normalizedContentType))
             return MediaType.Gif;
 
-        if (MediaConstants.AllowedAudioExtensions.Contains(ext) || MediaConstants.AllowedAudioMimeTypes.Contains(contentType))
+        if (MediaConstants.AllowedAudioExtensions.Contains(ext) || MediaConstants.AllowedAudioMimeTypes.Contains(normalizedContentType))
             return MediaType.Audio;
 
-        if (MediaConstants.AllowedVideoExtensions.Contains(ext) || MediaConstants.AllowedVideoMimeTypes.Contains(contentType))
+        if (MediaConstants.AllowedVideoExtensions.Contains(ext) || MediaConstants.AllowedVideoMimeTypes.Contains(normalizedContentType))
             return MediaType.Video;
 
         throw new MediaValidationException($"Tipo de archivo no soportado: {ext}");
@@ -177,7 +178,9 @@ public class MediaService(
             throw new MediaValidationException($"Extensión no permitida: {ext}");
         }
 
-        if (!allowedMimes.Contains(request.ContentType.ToLowerInvariant()))
+        var contentType = NormalizeMimeType(request.ContentType);
+
+        if (!allowedMimes.Contains(contentType))
         {
             throw new MediaValidationException($"Tipo MIME no permitido: {request.ContentType}");
         }
@@ -186,5 +189,18 @@ public class MediaService(
         {
             throw new MediaValidationException($"El archivo excede el tamaño máximo permitido de {maxSizeBytes / 1024 / 1024} MB");
         }
+    }
+
+    private static string NormalizeMimeType(string contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+        {
+            return string.Empty;
+        }
+
+        // Stripear parámetros de codec/charset (ej: "audio/webm;codecs=opus" -> "audio/webm")
+        var separatorIndex = contentType.IndexOf(';');
+        var baseType = separatorIndex > 0 ? contentType.Substring(0, separatorIndex) : contentType;
+        return baseType.Trim().ToLowerInvariant();
     }
 }

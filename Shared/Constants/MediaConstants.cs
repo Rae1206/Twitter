@@ -12,11 +12,11 @@ public static class MediaConstants
 
     public static readonly string[] AllowedImageExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
     public static readonly string[] AllowedGifExtensions = { ".gif" };
-    public static readonly string[] AllowedAudioExtensions = { ".mp3", ".wav", ".ogg" };
+    public static readonly string[] AllowedAudioExtensions = { ".mp3", ".wav", ".ogg", ".webm", ".m4a" };
     public static readonly string[] AllowedVideoExtensions = { ".mp4", ".mov", ".webm", ".m4v" };
 
     public static readonly string[] AllowedImageMimeTypes = { "image/jpeg", "image/png", "image/webp" };
     public static readonly string[] AllowedGifMimeTypes = { "image/gif" };
-    public static readonly string[] AllowedAudioMimeTypes = { "audio/mpeg", "audio/wav", "audio/ogg", "audio/x-wav" };
+    public static readonly string[] AllowedAudioMimeTypes = { "audio/mpeg", "audio/wav", "audio/ogg", "audio/x-wav", "audio/webm", "audio/mp4" };
     public static readonly string[] AllowedVideoMimeTypes = { "video/mp4", "video/quicktime", "video/webm", "video/x-m4v" };
 }
