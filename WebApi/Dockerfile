@@ -3,7 +3,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY ["Twitter.sln", "./"]
+COPY ["global.json", "./"]
 COPY ["WebApi/WebApi.csproj", "WebApi/"]
 COPY ["Application/Application.csproj", "Application/"]
 COPY ["Domain/Domain.csproj", "Domain/"]
