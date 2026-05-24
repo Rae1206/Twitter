@@ -9,6 +9,7 @@ namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class PostController(
     IPostService postService,
     ILikeService likeService,
@@ -18,12 +19,12 @@ public class PostController(
     [HttpPost("create")]
     public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest model)
     {
-        model.UserId = TryGetCurrentUserId() ?? model.UserId;
-
-        var post = await postService.Create(model);
+        var currentUserId = GetRequiredCurrentUserId();
+        var post = await postService.Create(currentUserId, model);
         return CreatedEnvelope(nameof(GetPostById), new { id = post.PostId }, post);
     }
 
+    [AllowAnonymous]
     [HttpGet("list")]
     public IActionResult GetAllPosts([FromQuery] GetAllPostRequest model)
     {
@@ -31,37 +32,38 @@ public class PostController(
         return OkEnvelope(rsp);
     }
 
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
-    public IActionResult GetPostById(Guid id)
+    public async Task<IActionResult> GetPostById(Guid id)
     {
-        var post = postService.Get(id);
+        var post = await postService.Get(id);
         return OkEnvelope(post);
     }
 
     [HttpPut("{id:guid}/update")]
     public async Task<IActionResult> UpdatePost([FromBody] UpdatePostRequest model, Guid id)
     {
-        model.UserId ??= TryGetCurrentUserId();
-
-        var post = await postService.Update(id, model);
+        var currentUserId = GetRequiredCurrentUserId();
+        var post = await postService.Update(id, currentUserId, model);
         return OkEnvelope(post);
     }
 
     [HttpPatch("{id:guid}/change-status")]
     public async Task<IActionResult> ChangePostStatus(Guid id, [FromBody] ChangePostStatusRequest model)
     {
-        await postService.ChangeStatus(id, model);
+        var currentUserId = GetRequiredCurrentUserId();
+        await postService.ChangeStatus(id, currentUserId, model);
         return SuccessEnvelope("Estado de la publicación actualizado correctamente");
     }
 
     [HttpDelete("{id:guid}/delete")]
     public async Task<IActionResult> DeletePost(Guid id)
     {
-        await postService.Delete(id);
+        var currentUserId = GetRequiredCurrentUserId();
+        await postService.Delete(id, currentUserId);
         return SuccessEnvelope("Publicación eliminada correctamente");
     }
 
-    [Authorize]
     [HttpPost("{id:guid}/like")]
     public async Task<IActionResult> ToggleLike(Guid id)
     {
@@ -70,7 +72,6 @@ public class PostController(
         return SuccessEnvelope("Reacción de me gusta procesada correctamente");
     }
 
-    [Authorize]
     [HttpPost("{id:guid}/comment")]
     public async Task<IActionResult> CreateComment(Guid id, [FromBody] CreateCommentRequest model)
     {
@@ -79,7 +80,6 @@ public class PostController(
         return CreatedEnvelope(nameof(GetPostById), new { id = post.PostId }, post);
     }
 
-    [Authorize]
     [HttpPost("{id:guid}/retweet")]
     public async Task<IActionResult> CreateRetweet(Guid id, [FromBody] CreateRetweetRequest model)
     {

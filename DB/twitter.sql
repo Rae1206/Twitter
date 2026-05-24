@@ -338,26 +338,18 @@ END
 GO
 
 -- =====================================================
--- EMAIL TEMPLATES PARA ADMINISTRACIÓN
+-- EMAIL TEMPLATES (diseño moderno X-themed)
 -- =====================================================
-IF NOT EXISTS (SELECT 1 FROM dbo.EmailTemplates WHERE Name = 'AccountSuspended')
-BEGIN
-    INSERT INTO dbo.EmailTemplates (Name, Subject, Body) VALUES
-    ('AccountSuspended',
-     'Tu cuenta ha sido suspendida',
-     '<h1>Cuenta suspendida</h1><p>Hola {fullName}, tu cuenta ha sido suspendida. Razón: {reason}. Hasta: {endsAt}.</p>'),
-    ('AccountBannedPermanent',
-     'Tu cuenta ha sido bloqueada permanentemente',
-     '<h1>Cuenta bloqueada</h1><p>Hola {fullName}, tu cuenta ha sido bloqueada permanentemente. Razón: {reason}.</p>'),
-    ('AccountRestored',
-     'Tu cuenta ha sido reactivada',
-     '<h1>Cuenta reactivada</h1><p>Hola {fullName}, la suspensión de tu cuenta ha sido levantada.</p>'),
-    ('PostRemoved',
-     'Tu publicación ha sido eliminada',
-     '<h1>Publicación eliminada</h1><p>Hola {fullName}, una de tus publicaciones fue eliminada. Razón: {reason}.</p>');
-    PRINT 'OK email templates de admin';
-END
-GO
+-- El contenido HTML completo de las 8 plantillas vive en
+--   DB/email-templates-modern.sql
+-- Ejecutalo después de este script para sembrarlas/actualizarlas:
+--   sqlcmd -S <server> -U <user> -P <pass> -d X_alex -C -N -f 65001 -i DB\email-templates-modern.sql
+--
+-- Templates seedeados: Welcome, PasswordReset, PasswordChanged,
+-- VerifyEmail, AccountSuspended, AccountBannedPermanent,
+-- AccountRestored, PostRemoved.
+-- Variables soportadas: {fullName}, {email}, {reason}, {endsAt}, {otp}
+-- =====================================================
 
 -- =====================================================
 -- ÍNDICES ADMIN

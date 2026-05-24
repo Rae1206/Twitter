@@ -16,17 +16,17 @@ public class AdminReportController(
 {
     [HttpGet("pending")]
     [RequirePermission(PermissionConstants.ReportsView)]
-    public IActionResult GetPendingReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
+    public async Task<IActionResult> GetPendingReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
-        var rsp = reportService.GetReportsAsync("Pending", limit, offset);
+        var rsp = await reportService.GetReportsAsync("Pending", limit, offset);
         return OkEnvelope(rsp);
     }
 
     [HttpGet("all")]
     [RequirePermission(PermissionConstants.ReportsView)]
-    public IActionResult GetAllReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
+    public async Task<IActionResult> GetAllReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
-        var rsp = reportService.GetReportsAsync(null, limit, offset);
+        var rsp = await reportService.GetReportsAsync(null, limit, offset);
         return OkEnvelope(rsp);
     }
 

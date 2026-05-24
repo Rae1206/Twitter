@@ -14,8 +14,8 @@ public class AuthRepository : GenericRepository<User, Guid>, IAuthRepository
     {
     }
 
-    public User? GetByEmail(string email) => _context.Users
+    public async Task<User?> GetByEmailAsync(string email) => await _context.Users
         .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-        .FirstOrDefault(u => u.Email == email);
+        .FirstOrDefaultAsync(u => u.Email == email);
 }

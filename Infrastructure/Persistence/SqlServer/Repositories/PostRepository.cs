@@ -1,4 +1,4 @@
-using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Interfaces.Repositories;
@@ -19,7 +19,7 @@ public class PostRepository : GenericRepository<Post, Guid>, IPostRepository
         return _context.Posts.AsQueryable();
     }
 
-    public List<Post> GetAll(int limit, int offset, Guid? userId = null, bool? isPublished = null)
+    public async Task<List<Post>> GetAllAsync(int limit, int offset, Guid? userId = null, bool? isPublished = null)
     {
         var query = _context.Posts.AsQueryable();
 
@@ -32,18 +32,32 @@ public class PostRepository : GenericRepository<Post, Guid>, IPostRepository
         var normalizedOffset = Math.Max(offset, 0);
         var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
 
-        return query.Skip(normalizedOffset).Take(normalizedLimit).ToList();
+        return await query.Skip(normalizedOffset).Take(normalizedLimit).ToListAsync();
     }
 
-    public List<Post> GetPostsByUserId(Guid userId, int limit = 0, int offset = 0)
+    public async Task<List<Post>> GetPostsByUserIdAsync(Guid userId, int limit = 0, int offset = 0)
     {
         var normalizedOffset = Math.Max(offset, 0);
         var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
 
-        return _context.Posts
+        return await _context.Posts
             .Where(p => p.UserId == userId)
             .Skip(normalizedOffset)
             .Take(normalizedLimit)
-            .ToList();
+            .ToListAsync();
+    }
+
+    public async Task<List<Post>> GetExpiredPendingSoftDeleteAsync(DateTime cutoff, int batchSize)
+    {
+        // IgnoreQueryFilters() hace bypass del filtro global; necesario porque el filtro YA oculta
+        // posts vencidos. El cleanup necesita verlos para marcar DeletedAt.
+        return await _context.Posts
+            .IgnoreQueryFilters()
+            .Where(p => p.DeletedAt == null
+                        && p.ExpiresAt != null
+                        && p.ExpiresAt <= cutoff)
+            .OrderBy(p => p.ExpiresAt)
+            .Take(batchSize)
+            .ToListAsync();
     }
 }

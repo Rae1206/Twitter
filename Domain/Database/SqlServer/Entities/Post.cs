@@ -25,6 +25,13 @@ public partial class Post
 
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>
+    /// Fecha (UTC) en la que el post deja de ser visible. Si es null, el post no expira.
+    /// Soportado por el global query filter en TwitterDbContext: las queries normales lo excluyen
+    /// automáticamente cuando UtcNow >= ExpiresAt. EphemeralPostCleanupService hace el soft-delete final.
+    /// </summary>
+    public DateTime? ExpiresAt { get; set; }
+
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<PostMedia> PostMedias { get; set; } = new List<PostMedia>();

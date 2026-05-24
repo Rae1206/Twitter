@@ -2,12 +2,12 @@ using Application.Interfaces.Services;
 using Application.Models.DTOs;
 using Application.Models.Requests.Post;
 using Application.Models.Responses;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Database.SqlServer.Entities.Enums;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
-using Shared.Exceptions;
+using Twitter.Domain.Exceptions;
 using Shared.Helpers;
 
 namespace Application.Services;
@@ -19,46 +19,61 @@ public class PostService(
     IUnitOfWork unitOfWork,
     ILogger<PostService> logger) : IPostService
 {
-    public async Task<PostDto> Create(CreatePostRequest model)
+    public async Task<PostDto> Create(Guid currentUserId, CreatePostRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Intentando crear post para usuario: {UserId}", model.UserId);
+            logger.LogInformation("Intentando crear post para usuario: {UserId}", currentUserId);
+        }
+
+        DateTime? expiresAt = null;
+        if (model.DurationMinutes.HasValue)
+        {
+            // El [Range] en el DTO ya valida los límites, pero defendemos doble por si se llama el service desde otro lugar.
+            if (model.DurationMinutes.Value < PostConstants.MinEphemeralMinutes
+                || model.DurationMinutes.Value > PostConstants.MaxEphemeralMinutes)
+            {
+                throw new ValidationException(
+                    $"La duración del post efímero debe estar entre {PostConstants.MinEphemeralMinutes} y {PostConstants.MaxEphemeralMinutes} minutos");
+            }
+
+            expiresAt = DateTimeHelper.UtcNow().AddMinutes(model.DurationMinutes.Value);
         }
 
         var entity = new Post
         {
             PostId = Guid.NewGuid(),
-            UserId = model.UserId,
+            UserId = currentUserId,
             Content = model.Content,
             IsPublished = model.IsPublished ?? false,
-            CreatedAt = DateTimeHelper.UtcNow()
+            CreatedAt = DateTimeHelper.UtcNow(),
+            ExpiresAt = expiresAt
         };
 
         unitOfWork.Create(entity);
 
         if (model.MediaIds is { Count: > 0 })
         {
-            await AssociateMediaAsync(entity.PostId, model.UserId, model.MediaIds);
+            await AssociateMediaAsync(entity.PostId, currentUserId, model.MediaIds);
         }
 
         await unitOfWork.SaveChangesAsync();
 
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Post creado exitosamente con ID: {PostId}", entity.PostId);
+            logger.LogInformation("Post creado exitosamente con ID: {PostId} (ExpiresAt: {ExpiresAt})", entity.PostId, entity.ExpiresAt);
         }
         return await MapToDtoAsync(entity);
     }
 
-    public async Task<PostDto> Update(Guid postId, UpdatePostRequest model)
+    public async Task<PostDto> Update(Guid postId, Guid currentUserId, UpdatePostRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Intentando actualizar post con ID: {PostId}", postId);
         }
 
-        var existing = unitOfWork.Posts.GetById(postId);
+        var existing = await unitOfWork.Posts.GetByIdAsync(postId);
 
         if (existing is null)
         {
@@ -69,15 +84,15 @@ public class PostService(
             throw new ResourceNotFoundException("post", postId);
         }
 
+        EnsureOwnership(existing, currentUserId, "actualizar");
+
         existing.Content = model.Content ?? existing.Content;
-        if (model.UserId.HasValue)
-            existing.UserId = model.UserId.Value;
 
         unitOfWork.Update(existing);
 
         if (model.MediaIds is not null)
         {
-            await ReplaceMediaAsync(postId, model.UserId ?? existing.UserId, model.MediaIds);
+            await ReplaceMediaAsync(postId, currentUserId, model.MediaIds);
         }
 
         await unitOfWork.SaveChangesAsync();
@@ -117,7 +132,7 @@ public class PostService(
         return new GenericResponse<List<PostDto>> { Data = dtos };
     }
 
-    public PostDto Get(Guid postId)
+    public async Task<PostDto> Get(Guid postId)
     {
         if (logger.IsEnabled(LogLevel.Debug))
         {
@@ -139,20 +154,22 @@ public class PostService(
         return dto;
     }
 
-    public async Task ChangeStatus(Guid postId, ChangePostStatusRequest model)
+    public async Task ChangeStatus(Guid postId, Guid currentUserId, ChangePostStatusRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Intentando cambiar estado del post con ID: {PostId}", postId);
         }
 
-        var existing = unitOfWork.Posts.GetById(postId);
+        var existing = await unitOfWork.Posts.GetByIdAsync(postId);
         
         if (existing is null)
         {
             logger.LogError("Error al cambiar estado del post con ID: {PostId}", postId);
             throw new ResourceNotFoundException("post", postId);
         }
+
+        EnsureOwnership(existing, currentUserId, "cambiar el estado de");
 
         existing.IsPublished = model.IsPublished;
         unitOfWork.Update(existing);
@@ -164,14 +181,14 @@ public class PostService(
         }
     }
 
-    public async Task Delete(Guid postId)
+    public async Task Delete(Guid postId, Guid currentUserId)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Intentando eliminar post con ID: {PostId}", postId);
         }
 
-        var post = unitOfWork.Posts.GetById(postId);
+        var post = await unitOfWork.Posts.GetByIdAsync(postId);
 
         if (post is null)
         {
@@ -181,6 +198,8 @@ public class PostService(
             }
             throw new ResourceNotFoundException("post", postId);
         }
+
+        EnsureOwnership(post, currentUserId, "eliminar");
 
         post.DeletedAt = DateTimeHelper.UtcNow();
         unitOfWork.Update(post);
@@ -200,6 +219,23 @@ public class PostService(
         }
     }
 
+    private void EnsureOwnership(Post post, Guid currentUserId, string action)
+    {
+        if (post.UserId == currentUserId)
+        {
+            return;
+        }
+
+        if (logger.IsEnabled(LogLevel.Warning))
+        {
+            logger.LogWarning(
+                "Intento no autorizado de {Action} post {PostId} por usuario {CurrentUserId} (dueño: {OwnerId})",
+                action, post.PostId, currentUserId, post.UserId);
+        }
+
+        throw new ForbiddenException($"No tiene permisos para {action} esta publicación");
+    }
+
     private async Task AssociateMediaAsync(Guid postId, Guid userId, List<Guid> mediaIds)
     {
         if (mediaIds.Count > MediaConstants.MaxMediaPerPost)
@@ -210,7 +246,7 @@ public class PostService(
         int audioCount = 0;
         foreach (var mediaId in mediaIds)
         {
-            var media = unitOfWork.PostMedias.GetById(mediaId);
+            var media = await unitOfWork.PostMedias.GetByIdAsync(mediaId);
             if (media is null)
             {
                 throw new ResourceNotFoundException("media", mediaId);
@@ -243,7 +279,6 @@ public class PostService(
 
     private async Task ReplaceMediaAsync(Guid postId, Guid userId, List<Guid> mediaIds)
     {
-        // Unlink existing media
         var existingMedia = await unitOfWork.PostMedias.GetByPostIdAsync(postId);
         foreach (var media in existingMedia)
         {
@@ -251,7 +286,6 @@ public class PostService(
             unitOfWork.Update(media);
         }
 
-        // Link new media
         if (mediaIds.Count > 0)
         {
             await AssociateMediaAsync(postId, userId, mediaIds);
@@ -278,7 +312,8 @@ public class PostService(
             RetweetsCount = p.Retweets.Count(),
             RepliesCount = p.Replies.Count(),
             MediaUrls = p.PostMedias.Select(m => m.Url).ToList(),
-            CreatedAt = p.CreatedAt
+            CreatedAt = p.CreatedAt,
+            ExpiresAt = p.ExpiresAt
         });
     }
 
@@ -290,7 +325,7 @@ public class PostService(
         if (dto is null)
         {
             var media = await unitOfWork.PostMedias.GetByPostIdAsync(entity.PostId);
-            var user = entity.User ?? unitOfWork.Users.GetById(entity.UserId);
+            var user = entity.User ?? await unitOfWork.Users.GetByIdAsync(entity.UserId);
             dto = new PostDto
             {
                 PostId = entity.PostId,
@@ -309,7 +344,8 @@ public class PostService(
                 RetweetsCount = 0,
                 RepliesCount = 0,
                 MediaUrls = media.Select(m => m.Url).ToList(),
-                CreatedAt = entity.CreatedAt
+                CreatedAt = entity.CreatedAt,
+                ExpiresAt = entity.ExpiresAt
             };
         }
 

@@ -487,3 +487,4 @@ $RECYCLE.BIN/
 *.swp
 # Local AI runtime state
 .atl/
+DB/email-templates-modern.sql

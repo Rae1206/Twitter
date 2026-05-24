@@ -1,6 +1,6 @@
 using Application.Models.Responses;
 using Shared.Constants;
-using Shared.Exceptions;
+using Twitter.Domain.Exceptions;
 using WebApi.Common;
 
 namespace WebApi.Middlewares;

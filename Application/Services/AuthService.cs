@@ -4,7 +4,7 @@ using Application.Models.Helpers;
 using Application.Models.Requests.Auth;
 using Application.Models.Responses;
 using Application.Models.Responses.Auth;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Shared.Constants;
 
@@ -19,18 +19,18 @@ public class AuthService(
     ICacheService cacheService,
     IEmailService emailService) : IAuthService
 {
-    public GenericResponse<LoginAuthResponse> Login(LoginAuthRequest model)
+    public async Task<GenericResponse<LoginAuthResponse>> Login(LoginAuthRequest model)
     {
-        var user = unitOfWork.Auth.GetByEmail(model.Email)
+        var user = await unitOfWork.Auth.GetByEmailAsync(model.Email)
             ?? throw new UnauthorizedAccessException(ResponseConstants.AUTH_USER_OR_PASSWORD_NOT_FOUND);
 
-        var passwordHash = unitOfWork.Users.GetPasswordHash(user.UserId);
+        var passwordHash = await unitOfWork.Users.GetPasswordHashAsync(user.UserId);
         if (passwordHash is null || !BCrypt.Net.BCrypt.Verify(model.Password, passwordHash))
         {
             throw new UnauthorizedAccessException(ResponseConstants.AUTH_USER_OR_PASSWORD_NOT_FOUND);
         }
 
-        var roles = unitOfWork.Roles.GetRolesByUserId(user.UserId)
+        var roles = (await unitOfWork.Roles.GetRolesByUserIdAsync(user.UserId))
             .Select(r => r.Name)
             .ToList();
 
@@ -49,16 +49,16 @@ public class AuthService(
         });
     }
 
-    public GenericResponse<LoginAuthResponse> Renew(RenewAuthRequest model)
+    public async Task<GenericResponse<LoginAuthResponse>> Renew(RenewAuthRequest model)
     {
         var findRefreshToken = cacheService.Get<RefreshToken>(
             CacheHelper.AuthRefreshTokenKey(model.RefreshToken)
         ) ?? throw new UnauthorizedAccessException(ResponseConstants.AUTH_REFRESH_TOKEN_NOT_FOUND);
 
-        var user = unitOfWork.Users.GetById(findRefreshToken.UserId)
+        var user = await unitOfWork.Users.GetByIdAsync(findRefreshToken.UserId)
             ?? throw new UnauthorizedAccessException(ResponseConstants.USER_NOT_EXISTS);
 
-        var roles = unitOfWork.Roles.GetRolesByUserId(user.UserId)
+        var roles = (await unitOfWork.Roles.GetRolesByUserIdAsync(user.UserId))
             .Select(r => r.Name)
             .ToList();
 

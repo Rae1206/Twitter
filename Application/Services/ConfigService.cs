@@ -1,9 +1,9 @@
 using Application.Interfaces.Services;
 using Application.Models.Responses;
 using Microsoft.Extensions.Logging;
-using Shared.Exceptions;
+using Twitter.Domain.Exceptions;
 using Shared.Helpers;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 
 namespace Application.Services;
@@ -38,9 +38,9 @@ public class ConfigService(
         return config;
     }
 
-    public GenericResponse<List<SystemConfig>> GetAllConfigsAsync()
+    public async Task<GenericResponse<List<SystemConfig>>> GetAllConfigsAsync()
     {
-        var configs = unitOfWork.SystemConfigs.GetAll(0, 0);
+        var configs = await unitOfWork.SystemConfigs.GetAllAsync();
         return new GenericResponse<List<SystemConfig>> { Data = configs };
     }
 }

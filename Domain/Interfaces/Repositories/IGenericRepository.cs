@@ -3,14 +3,14 @@ using System.Linq.Expressions;
 namespace Twitter.Domain.Interfaces.Repositories;
 
 /// <summary>
-/// Interfaz genérica para operaciones de CONSULTA.
-/// Las operaciones de escritura se manejan en UnitOfWork.
+/// Generic repository interface for query operations.
+/// Write operations are handled by IUnitOfWork.
 /// </summary>
 public interface IGenericRepository<T, TKey> where T : class
 {
-    T? GetById(TKey id);
-    List<T> GetAll(int limit = 0, int offset = 0, Expression<Func<T, bool>>? filter = null);
-    Task<bool> IfExists(Expression<Func<T, bool>> expression);
-    bool Exists(TKey id);
-    T? GetByField(Expression<Func<T, bool>> expression);
+    Task<T?> GetByIdAsync(TKey id);
+    Task<List<T>> GetAllAsync(int limit = 0, int offset = 0, Expression<Func<T, bool>>? filter = null);
+    Task<bool> ExistsAsync(Expression<Func<T, bool>> expression);
+    Task<bool> ExistsAsync(TKey id);
+    Task<T?> GetByFieldAsync(Expression<Func<T, bool>> expression);
 }

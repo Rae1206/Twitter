@@ -7,5 +7,5 @@ public interface IConfigService
 {
     Task<SystemConfig?> GetConfigAsync(string key);
     Task<SystemConfig> UpdateConfigAsync(string key, string value, Guid adminId);
-    GenericResponse<List<SystemConfig>> GetAllConfigsAsync();
+    Task<GenericResponse<List<SystemConfig>>> GetAllConfigsAsync();
 }

@@ -7,5 +7,5 @@ public interface ISuspensionService
 {
     Task<UserSuspension> SuspendAsync(Guid userId, Guid adminId, string suspensionType, string reason, DateTime? endsAt = null);
     Task<UserSuspension> LiftSuspensionAsync(Guid suspensionId, Guid liftedByUserId);
-    GenericResponse<List<UserSuspension>> GetSuspensionHistoryAsync(Guid userId, int limit = 0, int offset = 0);
+    Task<GenericResponse<List<UserSuspension>>> GetSuspensionHistoryAsync(Guid userId, int limit = 0, int offset = 0);
 }

@@ -1,11 +1,10 @@
 using Twitter.Domain.Interfaces.Repositories;
-using Twitter.Domain.Database.SqlServer.Entities;
 
-namespace Twitter.Domain.Database.SqlServer;
+namespace Twitter.Domain.Interfaces;
 
 /// <summary>
-/// Interfaz Unit of Work.
-/// Define operaciones de ESCRITURA y acceso a repositorios.
+/// Unit of Work interface.
+/// Defines write operations and repository access.
 /// </summary>
 public interface IUnitOfWork
 {
@@ -25,15 +24,9 @@ public interface IUnitOfWork
     IPostMediaRepository PostMedias { get; }
     ILikeRepository Likes { get; }
 
-    // ============================================
-    // OPERACIONES DE ESCRITURA
-    // ============================================
     void Create<T>(T entity) where T : class;
     void Update<T>(T entity) where T : class;
     void Delete<T>(T entity) where T : class;
 
-    // ============================================
-    // TRANSACCIONES
-    // ============================================
     Task SaveChangesAsync();
 }

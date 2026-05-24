@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Interfaces.Services;
 
 namespace Infrastructure.Background;

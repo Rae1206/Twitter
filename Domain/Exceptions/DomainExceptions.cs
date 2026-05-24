@@ -1,4 +1,4 @@
-namespace Shared.Exceptions;
+namespace Twitter.Domain.Exceptions;
 
 /// <summary>
 /// Excepción lanzada cuando un recurso no es encontrado.

@@ -11,9 +11,9 @@ public class EmailTemplateRepository : GenericRepository<EmailTemplate, int>, IE
     {
     }
 
-    public EmailTemplate? GetByName(string name)
+    public async Task<EmailTemplate?> GetByNameAsync(string name)
     {
-        return _context.Set<EmailTemplate>()
-            .FirstOrDefault(t => t.Name == name);
+        return await _context.Set<EmailTemplate>()
+            .FirstOrDefaultAsync(t => t.Name == name);
     }
 }

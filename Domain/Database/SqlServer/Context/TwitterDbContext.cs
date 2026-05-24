@@ -60,6 +60,9 @@ public partial class TwitterDbContext : DbContext
 
             entity.HasIndex(e => e.RetweetOfPostId, "IX_Posts_RetweetOfPostId");
 
+            entity.HasIndex(e => e.ExpiresAt, "IX_Posts_ExpiresAt")
+                .HasFilter("[ExpiresAt] IS NOT NULL");
+
             entity.Property(e => e.PostId).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.IsPublished).HasDefaultValue(true);
@@ -324,9 +327,11 @@ public partial class TwitterDbContext : DbContext
             entity.ToTable("Likes");
         });
 
-        // Global query filters for soft delete
+        // Global query filters for soft delete + ephemeral expiry.
+        // EF Core translates DateTime.UtcNow to SYSUTCDATETIME() in SQL Server,
+        // so the expiry check is evaluated on the database server in real time (no client-side cache, no gap).
         modelBuilder.Entity<User>().HasQueryFilter(u => u.DeletedAt == null);
-        modelBuilder.Entity<Post>().HasQueryFilter(p => p.DeletedAt == null);
+        modelBuilder.Entity<Post>().HasQueryFilter(p => p.DeletedAt == null && (p.ExpiresAt == null || p.ExpiresAt > DateTime.UtcNow));
         modelBuilder.Entity<PostMedia>().HasQueryFilter(m => !m.IsDeleted);
 
         OnModelCreatingPartial(modelBuilder);

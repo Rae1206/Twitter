@@ -2,7 +2,7 @@ using System.Text.Json;
 using Application.Interfaces.Services;
 using Application.Models.Responses;
 using Microsoft.Extensions.Logging;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Shared.Helpers;
 
@@ -38,9 +38,9 @@ public class AuditService(
         }
     }
 
-    public GenericResponse<List<AdminAuditLog>> GetAuditLogsAsync(int limit, int offset, Guid? adminUserId = null, string? action = null, string? entityType = null, DateTime? dateFrom = null, DateTime? dateTo = null)
+    public async Task<GenericResponse<List<AdminAuditLog>>> GetAuditLogsAsync(int limit, int offset, Guid? adminUserId = null, string? action = null, string? entityType = null, DateTime? dateFrom = null, DateTime? dateTo = null)
     {
-        var logs = unitOfWork.AdminAuditLogs.GetPagedAsync(limit, offset, adminUserId, action, entityType, dateFrom, dateTo).Result;
+        var logs = await unitOfWork.AdminAuditLogs.GetPagedAsync(limit, offset, adminUserId, action, entityType, dateFrom, dateTo);
         return new GenericResponse<List<AdminAuditLog>> { Data = logs };
     }
 }

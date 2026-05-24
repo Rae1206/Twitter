@@ -4,5 +4,5 @@ namespace Twitter.Domain.Interfaces.Repositories;
 
 public interface IEmailTemplateRepository
 {
-    EmailTemplate? GetByName(string name);
+    Task<EmailTemplate?> GetByNameAsync(string name);
 }

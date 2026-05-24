@@ -3,10 +3,10 @@ using System.Threading.Tasks;
 using Application.Interfaces.Services;
 using Application.Models.DTOs;
 using Application.Models.Requests.Post;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Shared.Constants;
-using Shared.Exceptions;
+using Twitter.Domain.Exceptions;
 using Shared.Helpers;
 using Microsoft.Extensions.Logging;
 
@@ -24,13 +24,13 @@ public class CommentService(
             logger.LogInformation("Creating comment for ParentPostId: {ParentPostId}, UserId: {UserId}", parentPostId, userId);
         }
 
-        var parentPost = unitOfWork.Posts.GetById(parentPostId);
+        var parentPost = await unitOfWork.Posts.GetByIdAsync(parentPostId);
         if (parentPost is null || parentPost.DeletedAt is not null || !parentPost.IsPublished)
         {
             throw new ResourceNotFoundException("La publicación original no existe o no está disponible");
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user is null)
         {
             throw new ResourceNotFoundException("user", userId);
@@ -54,6 +54,6 @@ public class CommentService(
             logger.LogInformation("Comment created successfully with PostId: {PostId}", comment.PostId);
         }
 
-        return postService.Get(comment.PostId);
+        return await postService.Get(comment.PostId);
     }
 }

@@ -2,7 +2,7 @@ using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Constants;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using WebApi.Attributes;
 using WebApi.Filters;
 
@@ -30,7 +30,7 @@ public class AdminPostController(
     [RequirePermission(PermissionConstants.PostsFlag)]
     public async Task<IActionResult> FlagPost(Guid id)
     {
-        var post = unitOfWork.Posts.GetById(id);
+        var post = await unitOfWork.Posts.GetByIdAsync(id);
         if (post is null)
         {
             return NotFoundEnvelope("Publicación no encontrada");
@@ -49,7 +49,7 @@ public class AdminPostController(
     public async Task<IActionResult> SoftDeletePost(Guid id, [FromQuery] string? reason = null)
     {
         var adminId = GetRequiredCurrentUserId();
-        var post = unitOfWork.Posts.GetById(id);
+        var post = await unitOfWork.Posts.GetByIdAsync(id);
         if (post is null)
         {
             return NotFoundEnvelope("Publicación no encontrada");
@@ -73,7 +73,7 @@ public class AdminPostController(
     [RequirePermission(PermissionConstants.PostsDelete)]
     public async Task<IActionResult> RestorePost(Guid id)
     {
-        var post = unitOfWork.Posts.GetById(id);
+        var post = await unitOfWork.Posts.GetByIdAsync(id);
         if (post is null)
         {
             return NotFoundEnvelope("Publicación no encontrada");

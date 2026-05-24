@@ -2,11 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Application.Interfaces.Services;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Exceptions;
 using Shared.Constants;
-using Shared.Exceptions;
 using Shared.Helpers;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
@@ -24,13 +23,13 @@ public class LikeService(
             logger.LogInformation("Toggling like for PostId: {PostId}, UserId: {UserId}", postId, userId);
         }
 
-        var post = unitOfWork.Posts.GetById(postId);
+        var post = await unitOfWork.Posts.GetByIdAsync(postId);
         if (post is null)
         {
             throw new ResourceNotFoundException("post", postId);
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user is null)
         {
             throw new ResourceNotFoundException("user", userId);
@@ -70,7 +69,7 @@ public class LikeService(
             logger.LogInformation("Getting likers for PostId: {PostId}", postId);
         }
 
-        var post = unitOfWork.Posts.GetById(postId);
+        var post = await unitOfWork.Posts.GetByIdAsync(postId);
         if (post is null)
         {
             throw new ResourceNotFoundException("post", postId);

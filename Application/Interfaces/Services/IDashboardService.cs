@@ -4,6 +4,6 @@ namespace Application.Interfaces.Services;
 
 public interface IDashboardService
 {
-    GenericResponse<Dictionary<string, decimal>> GetStatsAsync();
+    Task<GenericResponse<Dictionary<string, decimal>>> GetStatsAsync();
     Task RecalculateStatsAsync();
 }

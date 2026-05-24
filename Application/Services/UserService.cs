@@ -1,17 +1,14 @@
 using Application.Interfaces.Services;
 using Application.Models.DTOs;
-using Application.Models.Requests.Media;
 using Application.Models.Requests.User;
 using Application.Models.Responses;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using Shared.Constants;
-using Shared.Exceptions;
+using Twitter.Domain.Exceptions;
 using Shared.Helpers;
 using BCrypt.Net;
-using Twitter.Domain.Interfaces.Services;
 
 namespace Application.Services;
 
@@ -21,11 +18,8 @@ namespace Application.Services;
 public class UserService(
     IUnitOfWork unitOfWork,
     IEmailService emailService,
-    IMediaStorageService mediaStorageService,
-    IConfiguration configuration,
     ILogger<UserService> logger) : IUserService
 {
-    private const string AvatarFolder = "avatars";
 
     public async Task<UserDto> Create(CreateUserRequest model)
     {
@@ -34,7 +28,7 @@ public class UserService(
             logger.LogInformation("Intentando crear usuario con email: {Email}", model.Email);
         }
 
-        if (unitOfWork.Users.ExistsByEmail(model.Email))
+        if (await unitOfWork.Users.ExistsByEmailAsync(model.Email))
         {
             if (logger.IsEnabled(LogLevel.Warning))
             {
@@ -43,7 +37,7 @@ public class UserService(
             throw new AlreadyExistsException("usuario", "email", model.Email);
         }
 
-        var defaultRoleId = unitOfWork.Roles.GetRoleIdByName(RoleConstants.DefaultRole);
+        var defaultRoleId = await unitOfWork.Roles.GetRoleIdByNameAsync(RoleConstants.DefaultRole);
 
         if (!defaultRoleId.HasValue)
         {
@@ -64,7 +58,7 @@ public class UserService(
         unitOfWork.Create(entity);
 
         // Asignar el rol por defecto
-        await AssignRoleToUser(entity.UserId, defaultRoleId.Value);
+        AssignRoleToUser(entity.UserId, defaultRoleId.Value);
 
         await unitOfWork.SaveChangesAsync();
 
@@ -85,7 +79,7 @@ public class UserService(
             logger.LogInformation("Intentando actualizar el perfil del usuario con ID: {UserId}", userId);
         }
 
-        var existing = unitOfWork.Users.GetById(userId);
+        var existing = await unitOfWork.Users.GetByIdAsync(userId);
 
         if (existing is null)
         {
@@ -102,7 +96,7 @@ public class UserService(
 
         if (normalizedEmail is not null
             && !string.Equals(existing.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase)
-            && unitOfWork.Users.ExistsByEmail(normalizedEmail))
+            && await unitOfWork.Users.ExistsByEmailAsync(normalizedEmail))
         {
             throw new AlreadyExistsException("usuario", "email", normalizedEmail);
         }
@@ -132,7 +126,7 @@ public class UserService(
         return MapToDto(existing);
     }
 
-    public GenericResponse<List<UserDto>> Get(int limit, int offset, string? fullName = null, string? email = null)
+    public async Task<GenericResponse<List<UserDto>>> Get(int limit, int offset, string? fullName = null, string? email = null)
     {
         if (logger.IsEnabled(LogLevel.Debug))
         {
@@ -140,19 +134,19 @@ public class UserService(
                 limit, offset, fullName, email);
         }
 
-        var users = unitOfWork.Users.GetAll(limit, offset, fullName, email);
+        var users = await unitOfWork.Users.GetAllAsync(limit, offset, fullName, email);
         var dtos = users.Select(MapToDto).ToList();
         return new GenericResponse<List<UserDto>> { Data = dtos };
     }
 
-    public UserDto Get(Guid userId)
+    public async Task<UserDto> Get(Guid userId)
     {
         if (logger.IsEnabled(LogLevel.Debug))
         {
             logger.LogDebug("Buscando usuario con ID: {UserId}", userId);
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
 
         if (user is null)
         {
@@ -173,7 +167,7 @@ public class UserService(
             logger.LogInformation("Intentando cambiar contraseña del usuario con ID: {UserId}", userId);
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
 
         if (user is null)
         {
@@ -196,67 +190,6 @@ public class UserService(
         await emailService.SendPasswordChangedNotificationAsync(user.Email, user.FullName);
     }
 
-    public async Task<UserDto> UploadProfilePhoto(Guid userId, UploadMediaRequest request)
-    {
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Intentando subir foto de perfil para usuario con ID: {UserId}", userId);
-        }
-
-        var user = unitOfWork.Users.GetById(userId);
-
-        if (user is null)
-        {
-            throw new ResourceNotFoundException("usuario", userId);
-        }
-
-        ValidateAvatarFile(request);
-
-        var previousStoragePath = user.ProfilePhotoStoragePath;
-        var fileName = Path.GetFileName(request.FileName);
-        var storagePath = await mediaStorageService.SaveAsync(request.FileStream, fileName, AvatarFolder);
-        var publicUrl = await ResolveProfilePhotoUrlAsync(userId, storagePath);
-
-        user.ProfilePhotoFileName = fileName;
-        user.ProfilePhotoStoragePath = storagePath;
-        user.ProfilePhotoUrl = publicUrl;
-
-        unitOfWork.Update(user);
-        await unitOfWork.SaveChangesAsync();
-
-        if (!string.IsNullOrWhiteSpace(previousStoragePath)
-            && !string.Equals(previousStoragePath, storagePath, StringComparison.OrdinalIgnoreCase))
-        {
-            try
-            {
-                await mediaStorageService.DeleteAsync(previousStoragePath);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "No se pudo eliminar la foto de perfil previa del usuario {UserId}", userId);
-            }
-        }
-
-        return MapToDto(user);
-    }
-
-    public UserProfilePhotoDto GetProfilePhoto(Guid userId)
-    {
-        var user = unitOfWork.Users.GetById(userId);
-
-        if (user is null)
-        {
-            throw new ResourceNotFoundException("usuario", userId);
-        }
-
-        return new UserProfilePhotoDto
-        {
-            FileName = user.ProfilePhotoFileName,
-            StoragePath = user.ProfilePhotoStoragePath,
-            Url = user.ProfilePhotoUrl
-        };
-    }
-
     public async Task Delete(Guid userId)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -264,7 +197,7 @@ public class UserService(
             logger.LogInformation("Intentando soft-delete usuario con ID: {UserId}", userId);
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
 
         if (user is null)
         {
@@ -292,7 +225,7 @@ public class UserService(
             logger.LogInformation("Intentando restaurar usuario con ID: {UserId}", userId);
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
 
         if (user is null)
         {
@@ -314,7 +247,7 @@ public class UserService(
         }
     }
 
-    private async Task AssignRoleToUser(Guid userId, Guid roleId)
+    private void AssignRoleToUser(Guid userId, Guid roleId)
     {
         var userRole = new UserRole
         {
@@ -323,7 +256,6 @@ public class UserService(
             AssignedAt = DateTimeHelper.UtcNow()
         };
         unitOfWork.Create(userRole);
-        await Task.CompletedTask;
     }
 
     private static UserDto MapToDto(User entity) => new()
@@ -341,44 +273,6 @@ public class UserService(
         CreatedAt = entity.CreatedAt,
         Roles = entity.UserRoles?.Select(ur => ur.Role?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>()
     };
-
-    private static void ValidateAvatarFile(UploadMediaRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.FileName))
-        {
-            throw new ValidationException("La foto de perfil debe incluir un nombre de archivo válido");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.ContentType))
-        {
-            throw new ValidationException("La foto de perfil debe incluir un tipo MIME válido");
-        }
-
-        var fileName = Path.GetFileName(request.FileName);
-        var extension = Path.GetExtension(fileName).ToLowerInvariant();
-        var contentType = request.ContentType.ToLowerInvariant();
-        var maxSizeBytes = MediaConstants.MaxImageSizeMb * 1024 * 1024;
-
-        if (!MediaConstants.AllowedImageExtensions.Contains(extension))
-        {
-            throw new ValidationException($"Extensión no permitida para foto de perfil: {extension}");
-        }
-
-        if (!MediaConstants.AllowedImageMimeTypes.Contains(contentType))
-        {
-            throw new ValidationException($"Tipo MIME no permitido para foto de perfil: {request.ContentType}");
-        }
-
-        if (request.Length <= 0)
-        {
-            throw new ValidationException("La foto de perfil está vacía");
-        }
-
-        if (request.Length > maxSizeBytes)
-        {
-            throw new ValidationException($"La foto de perfil excede el tamaño máximo permitido de {MediaConstants.MaxImageSizeMb} MB");
-        }
-    }
 
     private static string? NormalizeOptionalProfileField(string? value, string fieldName)
     {
@@ -408,15 +302,4 @@ public class UserService(
         return normalizedBiography.Length == 0 ? null : normalizedBiography;
     }
 
-    private async Task<string> ResolveProfilePhotoUrlAsync(Guid userId, string storagePath)
-    {
-        var storageProvider = configuration["Storage:Provider"]?.ToLowerInvariant() ?? "local";
-
-        if (storageProvider == "digitalocean")
-        {
-            return await mediaStorageService.GetPublicUrlAsync(storagePath, userId);
-        }
-
-        return $"/api/user/{userId}/avatar";
-    }
 }

@@ -6,10 +6,10 @@ namespace Application.Interfaces.Services;
 
 public interface IPostService
 {
-    Task<PostDto> Create(CreatePostRequest model);
-    Task<PostDto> Update(Guid postId, UpdatePostRequest model);
+    Task<PostDto> Create(Guid currentUserId, CreatePostRequest model);
+    Task<PostDto> Update(Guid postId, Guid currentUserId, UpdatePostRequest model);
     GenericResponse<List<PostDto>> Get(int limit, int offset, Guid? userId, bool? isPublished);
-    PostDto Get(Guid postId);
-    Task ChangeStatus(Guid postId, ChangePostStatusRequest model);
-    Task Delete(Guid postId);
+    Task<PostDto> Get(Guid postId);
+    Task ChangeStatus(Guid postId, Guid currentUserId, ChangePostStatusRequest model);
+    Task Delete(Guid postId, Guid currentUserId);
 }

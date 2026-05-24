@@ -1,4 +1,3 @@
-using Twitter.Domain.Database.SqlServer;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using WebApi.Extensions;

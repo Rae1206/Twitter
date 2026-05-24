@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Interfaces.Repositories;
@@ -15,7 +16,7 @@ public class UserRepository : GenericRepository<User, Guid>, IUserRepository
     {
     }
 
-    public List<User> GetAll(int limit, int offset, string? fullName = null, string? email = null)
+    public async Task<List<User>> GetAllAsync(int limit, int offset, string? fullName = null, string? email = null)
     {
         var query = _context.Users.AsQueryable();
 
@@ -28,21 +29,18 @@ public class UserRepository : GenericRepository<User, Guid>, IUserRepository
         var normalizedOffset = Math.Max(offset, 0);
         var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
 
-        return query.Skip(normalizedOffset).Take(normalizedLimit).ToList();
+        return await query.Skip(normalizedOffset).Take(normalizedLimit).ToListAsync();
     }
 
-    public User? GetByEmail(string email) 
-        => _context.Users.FirstOrDefault(u => u.Email == email);
+    public async Task<User?> GetByEmailAsync(string email)
+        => await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-    public bool ExistsByEmail(string email) 
-        => _context.Users.Any(u => u.Email == email);
+    public async Task<bool> ExistsByEmailAsync(string email)
+        => await _context.Users.AnyAsync(u => u.Email == email);
 
-    public string? GetPasswordHash(Guid userId)
+    public async Task<string?> GetPasswordHashAsync(Guid userId)
     {
-        var user = _context.Users.Find(userId);
+        var user = await _context.Users.FindAsync(userId);
         return user?.PasswordHash;
     }
-
-    public bool VerifyPassword(string passwordHash, string password)
-        => BCrypt.Net.BCrypt.Verify(password, passwordHash);
 }

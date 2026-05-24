@@ -16,9 +16,9 @@ public class AdminConfigController(
 {
     [HttpGet("all")]
     [RequirePermission(PermissionConstants.ConfigView)]
-    public IActionResult GetAllConfigs()
+    public async Task<IActionResult> GetAllConfigs()
     {
-        var rsp = configService.GetAllConfigsAsync();
+        var rsp = await configService.GetAllConfigsAsync();
         return OkEnvelope(rsp);
     }
 

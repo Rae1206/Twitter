@@ -1,11 +1,10 @@
 using Application.Interfaces.Services;
 using Application.Models.DTOs;
 using Application.Models.Responses;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Shared.Exceptions;
+using Twitter.Domain.Exceptions;
 using Shared.Helpers;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 
 namespace Application.Services;
@@ -16,24 +15,21 @@ public class AdminService(
     ICacheService cacheService,
     ILogger<AdminService> logger) : IAdminService
 {
-    public GenericResponse<List<UserDto>> ListUsersAsync(int limit, int offset, string? fullName = null, string? email = null, bool? includeDeleted = null)
+    public async Task<GenericResponse<List<UserDto>>> ListUsersAsync(int limit, int offset, string? fullName = null, string? email = null, bool? includeDeleted = null)
     {
         if (logger.IsEnabled(LogLevel.Debug))
         {
             logger.LogDebug("Listando usuarios | Limit: {Limit}, Offset: {Offset}, IncludeDeleted: {IncludeDeleted}", limit, offset, includeDeleted);
         }
 
-        var query = unitOfWork.Users.GetAll(limit, offset, fullName, email).AsQueryable();
+        var users = await unitOfWork.Users.GetAllAsync(limit, offset, fullName, email);
 
         if (includeDeleted == true)
         {
-            // Need to bypass global filter - this requires raw query or special handling.
-            // For simplicity in this implementation, we won't support includeDeleted in the generic repo pattern
-            // without significant refactor. We'll log a note and return non-deleted users.
             logger.LogWarning("includeDeleted=true requiere IgnoreQueryFilters; no soportado en esta iteración sin refactor de repositorios");
         }
 
-        var dtos = query.Select(MapToDto).ToList();
+        var dtos = users.Select(MapToDto).ToList();
         return new GenericResponse<List<UserDto>> { Data = dtos };
     }
 
@@ -44,7 +40,7 @@ public class AdminService(
             logger.LogInformation("Soft delete de usuario {UserId} por admin {AdminId}", userId, adminId);
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user is null)
         {
             throw new ResourceNotFoundException("usuario", userId);
@@ -72,13 +68,11 @@ public class AdminService(
             logger.LogInformation("Restaurando usuario {UserId}", userId);
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user is null)
         {
             throw new ResourceNotFoundException("usuario", userId);
         }
-
-        var oldValue = new { user.DeletedAt, user.DeletedByAdminId };
 
         user.DeletedAt = null;
         user.DeletedByAdminId = null;
@@ -91,7 +85,7 @@ public class AdminService(
 
     public async Task<UserDto> VerifyUserAsync(Guid userId)
     {
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user is null)
         {
             throw new ResourceNotFoundException("usuario", userId);
@@ -106,7 +100,7 @@ public class AdminService(
 
     public async Task<UserDto> UnverifyUserAsync(Guid userId)
     {
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user is null)
         {
             throw new ResourceNotFoundException("usuario", userId);
@@ -121,13 +115,13 @@ public class AdminService(
 
     public async Task<UserDto> ChangeUserRoleAsync(Guid userId, Guid roleId)
     {
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user is null)
         {
             throw new ResourceNotFoundException("usuario", userId);
         }
 
-        var role = unitOfWork.Roles.GetById(roleId);
+        var role = await unitOfWork.Roles.GetByIdAsync(roleId);
         if (role is null)
         {
             throw new ResourceNotFoundException("rol", roleId);

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using WebApi.Common;
 using WebApi.Extensions;
 

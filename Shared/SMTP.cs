@@ -57,8 +57,7 @@ public class SMTP
         {
             Credentials = new NetworkCredential(user, password),
             EnableSsl = useSsl,
-            DeliveryMethod = SmtpDeliveryMethod.Network,
-            TargetName = "STARTTLS" // Necesario para algunos servidores SMTP
+            DeliveryMethod = SmtpDeliveryMethod.Network
         };
 
         var mailMessage = new MailMessage

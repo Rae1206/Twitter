@@ -19,4 +19,10 @@ public class PostDto
     public int RepliesCount { get; set; }
     public List<string>? MediaUrls { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// Fecha (UTC) de expiración del post efímero. Si es null, el post no expira.
+    /// El frontend puede usar esto para mostrar un countdown.
+    /// </summary>
+    public DateTime? ExpiresAt { get; set; }
 }

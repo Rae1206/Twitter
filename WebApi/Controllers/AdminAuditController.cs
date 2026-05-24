@@ -15,7 +15,7 @@ public class AdminAuditController(
 {
     [HttpGet("logs")]
     [RequirePermission(PermissionConstants.AuditView)]
-    public IActionResult GetAuditLogs(
+    public async Task<IActionResult> GetAuditLogs(
         [FromQuery] int limit = 50,
         [FromQuery] int offset = 0,
         [FromQuery] Guid? adminUserId = null,
@@ -24,7 +24,7 @@ public class AdminAuditController(
         [FromQuery] DateTime? dateFrom = null,
         [FromQuery] DateTime? dateTo = null)
     {
-        var rsp = auditService.GetAuditLogsAsync(limit, offset, adminUserId, action, entityType, dateFrom, dateTo);
+        var rsp = await auditService.GetAuditLogsAsync(limit, offset, adminUserId, action, entityType, dateFrom, dateTo);
         return OkEnvelope(rsp);
     }
 }

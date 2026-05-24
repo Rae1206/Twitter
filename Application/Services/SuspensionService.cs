@@ -1,9 +1,9 @@
 using Application.Interfaces.Services;
 using Application.Models.Responses;
 using Microsoft.Extensions.Logging;
-using Shared.Exceptions;
+using Twitter.Domain.Exceptions;
 using Shared.Helpers;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 
 namespace Application.Services;
@@ -22,7 +22,7 @@ public class SuspensionService(
             logger.LogInformation("Suspendiendo usuario {UserId} por admin {AdminId} | Tipo: {Type}", userId, adminId, suspensionType);
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user is null)
         {
             throw new ResourceNotFoundException("usuario", userId);
@@ -70,7 +70,7 @@ public class SuspensionService(
             logger.LogInformation("Levantando suspensión {SuspensionId} por admin {AdminId}", suspensionId, liftedByUserId);
         }
 
-        var suspension = unitOfWork.UserSuspensions.GetById(suspensionId);
+        var suspension = await unitOfWork.UserSuspensions.GetByIdAsync(suspensionId);
         if (suspension is null)
         {
             throw new ResourceNotFoundException("suspensión", suspensionId);
@@ -81,7 +81,7 @@ public class SuspensionService(
         suspension.LiftedAt = DateTimeHelper.UtcNow();
         unitOfWork.Update(suspension);
 
-        var user = unitOfWork.Users.GetById(suspension.UserId);
+        var user = await unitOfWork.Users.GetByIdAsync(suspension.UserId);
         if (user is not null)
         {
             user.IsSuspended = false;
@@ -100,9 +100,9 @@ public class SuspensionService(
         return suspension;
     }
 
-    public GenericResponse<List<UserSuspension>> GetSuspensionHistoryAsync(Guid userId, int limit = 0, int offset = 0)
+    public async Task<GenericResponse<List<UserSuspension>>> GetSuspensionHistoryAsync(Guid userId, int limit = 0, int offset = 0)
     {
-        var query = unitOfWork.UserSuspensions.GetAll(limit, offset, s => s.UserId == userId);
+        var query = await unitOfWork.UserSuspensions.GetAllAsync(limit, offset, s => s.UserId == userId);
         return new GenericResponse<List<UserSuspension>> { Data = query };
     }
 }

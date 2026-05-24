@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using Twitter.Domain.Database.SqlServer.Context;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Interfaces.Repositories;
 using Twitter.Domain.Interfaces.Services;
 using Infrastructure.Persistence;
@@ -10,6 +10,8 @@ using Infrastructure.Persistence.Storage;
 using Infrastructure.Background;
 using Application.Interfaces.Services;
 using Application.Services;
+using Application.Validators;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -86,6 +88,10 @@ public static class ServiceCollectionExtension
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<ILikeService, LikeService>();
         services.AddScoped<IRetweetService, RetweetService>();
+        services.AddScoped<IAvatarService, AvatarService>();
+
+        // FluentValidation
+        services.AddValidatorsFromAssemblyContaining<UploadMediaRequestValidator>();
 
         // Storage provider selection: local (default) or digitalocean
         var storageProvider = configuration["Storage:Provider"]?.ToLowerInvariant() ?? "local";
@@ -100,6 +106,7 @@ public static class ServiceCollectionExtension
 
         // 7. Background services
         services.AddHostedService<OrphanedMediaCleanupService>();
+        services.AddHostedService<EphemeralPostCleanupService>();
 
         // 8. Email
         services.AddSingleton<SMTP>();

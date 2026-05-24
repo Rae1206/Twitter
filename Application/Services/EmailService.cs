@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Interfaces.Services;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Shared;
 using Shared.Constants;
@@ -60,11 +60,10 @@ public class EmailService : IEmailService
     {
         try
         {
-            // Crear un scope nuevo para evitar conflicto de DbContext
             using var scope = _scopeFactory.CreateScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-            var template = unitOfWork.EmailTemplates.GetByName(templateName);
+            var template = await unitOfWork.EmailTemplates.GetByNameAsync(templateName);
 
             if (template is null)
             {
@@ -90,7 +89,6 @@ public class EmailService : IEmailService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al enviar email {TemplateName} a: {Email}", templateName, to);
-            // No lanzamos la excepción para no fallar la operación principal
         }
     }
 

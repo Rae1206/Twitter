@@ -6,48 +6,41 @@ using System.Linq.Expressions;
 namespace Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// Repositorio genérico de CONSULTA.
-/// Usa DbContext internamente, no expone DbSet.
-/// Las operaciones de escritura van en UnitOfWork.
+/// Generic query repository. Write operations go through UnitOfWork.
 /// </summary>
-public class GenericRepository<T, TKey> : IGenericRepository<T, TKey> where T : class
+public class GenericRepository<T, TKey>(TwitterDbContext context) : IGenericRepository<T, TKey> where T : class
 {
-    protected readonly TwitterDbContext _context;
+    protected readonly TwitterDbContext _context = context;
 
-    public GenericRepository(TwitterDbContext context)
+    public virtual async Task<T?> GetByIdAsync(TKey id)
     {
-        _context = context;
+        return await _context.Set<T>().FindAsync(id);
     }
 
-    public virtual T? GetById(TKey id)
-    {
-        return _context.Set<T>().Find(id);
-    }
-
-    public virtual List<T> GetAll(int limit = 0, int offset = 0, Expression<Func<T, bool>>? filter = null)
+    public virtual async Task<List<T>> GetAllAsync(int limit = 0, int offset = 0, Expression<Func<T, bool>>? filter = null)
     {
         var query = filter is null ? _context.Set<T>() : _context.Set<T>().Where(filter);
 
         var normalizedOffset = Math.Max(offset, 0);
-        var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
+        var normalizedLimit = limit <= 0 ? 100 : Math.Min(limit, 100);
 
-        return query
+        return await query
             .Skip(normalizedOffset)
             .Take(normalizedLimit)
-            .ToList();
+            .ToListAsync();
     }
 
-    public virtual bool Exists(TKey id)
+    public virtual async Task<bool> ExistsAsync(TKey id)
     {
-        return _context.Set<T>().Find(id) is not null;
+        return await _context.Set<T>().FindAsync(id) is not null;
     }
 
-    public virtual T? GetByField(Expression<Func<T, bool>> expression)
+    public virtual async Task<T?> GetByFieldAsync(Expression<Func<T, bool>> expression)
     {
-        return _context.Set<T>().FirstOrDefault(expression);
+        return await _context.Set<T>().FirstOrDefaultAsync(expression);
     }
 
-    public async Task<bool> IfExists(Expression<Func<T, bool>> expression)
+    public async Task<bool> ExistsAsync(Expression<Func<T, bool>> expression)
     {
         return await _context.Set<T>().AnyAsync(expression);
     }

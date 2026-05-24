@@ -36,9 +36,9 @@ public class AdminSuspensionController(
 
     [HttpGet("history/{userId:guid}")]
     [RequirePermission(PermissionConstants.UsersBan)]
-    public IActionResult GetSuspensionHistory(Guid userId, [FromQuery] int limit = 0, [FromQuery] int offset = 0)
+    public async Task<IActionResult> GetSuspensionHistory(Guid userId, [FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
-        var rsp = suspensionService.GetSuspensionHistoryAsync(userId, limit, offset);
+        var rsp = await suspensionService.GetSuspensionHistoryAsync(userId, limit, offset);
         return OkEnvelope(rsp);
     }
 }

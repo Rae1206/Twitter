@@ -14,9 +14,10 @@ public class RoleRepository : GenericRepository<Role, Guid>, IRoleRepository
     {
     }
 
-    public Role? GetByName(string name) => _context.Roles.FirstOrDefault(r => r.Name == name);
+    public async Task<Role?> GetByNameAsync(string name)
+        => await _context.Roles.FirstOrDefaultAsync(r => r.Name == name);
 
-    public override List<Role> GetAll(int limit = 0, int offset = 0, System.Linq.Expressions.Expression<Func<Role, bool>>? filter = null)
+    public override async Task<List<Role>> GetAllAsync(int limit = 0, int offset = 0, System.Linq.Expressions.Expression<Func<Role, bool>>? filter = null)
     {
         var query = _context.Roles.Where(r => r.IsActive);
 
@@ -28,26 +29,32 @@ public class RoleRepository : GenericRepository<Role, Guid>, IRoleRepository
         var normalizedOffset = Math.Max(offset, 0);
         var normalizedLimit = limit <= 0 ? int.MaxValue : limit;
 
-        return query
+        return await query
             .Skip(normalizedOffset)
             .Take(normalizedLimit)
-            .ToList();
+            .ToListAsync();
     }
 
-    public Guid? GetRoleIdByName(string roleName) => _context.Roles
-        .Where(r => r.Name == roleName && r.IsActive)
-        .Select(r => r.RoleId)
-        .FirstOrDefault();
+    public async Task<Guid?> GetRoleIdByNameAsync(string roleName)
+        => await _context.Roles
+            .Where(r => r.Name == roleName && r.IsActive)
+            .Select(r => (Guid?)r.RoleId)
+            .FirstOrDefaultAsync();
 
-    public List<Role> GetRolesByUserId(Guid userId) => _context.UserRoles
-        .Where(ur => ur.UserId == userId)
-        .Include(ur => ur.Role)
-        .Select(ur => ur.Role)
-        .ToList();
+    public async Task<List<Role>> GetRolesByUserIdAsync(Guid userId)
+        => await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Include(ur => ur.Role)
+            .Select(ur => ur.Role)
+            .ToListAsync();
 
-    public string? GetPrimaryRoleName(Guid userId) => _context.UserRoles
-        .Where(ur => ur.UserId == userId)
-        .Include(ur => ur.Role)
-        .OrderBy(ur => ur.AssignedAt)
-        .FirstOrDefault()?.Role?.Name;
+    public async Task<string?> GetPrimaryRoleNameAsync(Guid userId)
+    {
+        var userRole = await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Include(ur => ur.Role)
+            .OrderBy(ur => ur.AssignedAt)
+            .FirstOrDefaultAsync();
+        return userRole?.Role?.Name;
+    }
 }

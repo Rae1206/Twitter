@@ -3,9 +3,9 @@ using Application.Models.DTOs;
 using Application.Models.Requests.Media;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
-using Shared.Exceptions;
+using Twitter.Domain.Exceptions;
 using Shared.Helpers;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Database.SqlServer.Entities.Enums;
 using Twitter.Domain.Interfaces.Services;
@@ -63,7 +63,7 @@ public class MediaService(
 
     public async Task<PostMedia?> GetByIdAsync(Guid mediaId)
     {
-        return unitOfWork.PostMedias.GetById(mediaId);
+        return await unitOfWork.PostMedias.GetByIdAsync(mediaId);
     }
 
     public async Task<List<PostMedia>> GetByPostIdAsync(Guid postId)
@@ -73,7 +73,7 @@ public class MediaService(
 
     public async Task DeleteAsync(Guid mediaId, Guid userId)
     {
-        var media = unitOfWork.PostMedias.GetById(mediaId);
+        var media = await unitOfWork.PostMedias.GetByIdAsync(mediaId);
         if (media is null)
         {
             throw new ResourceNotFoundException("media", mediaId);

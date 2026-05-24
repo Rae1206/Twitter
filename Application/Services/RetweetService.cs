@@ -3,11 +3,10 @@ using System.Threading.Tasks;
 using Application.Interfaces.Services;
 using Application.Models.DTOs;
 using Application.Models.Requests.Post;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Exceptions;
 using Shared.Constants;
-using Shared.Exceptions;
 using Shared.Helpers;
 using Microsoft.Extensions.Logging;
 
@@ -25,13 +24,13 @@ public class RetweetService(
             logger.LogInformation("Creating retweet for PostId: {PostId}, UserId: {UserId}", postId, userId);
         }
 
-        var targetPost = unitOfWork.Posts.GetById(postId);
+        var targetPost = await unitOfWork.Posts.GetByIdAsync(postId);
         if (targetPost is null || targetPost.DeletedAt is not null || !targetPost.IsPublished)
         {
             throw new ResourceNotFoundException("La publicación original no existe o no está disponible");
         }
 
-        var user = unitOfWork.Users.GetById(userId);
+        var user = await unitOfWork.Users.GetByIdAsync(userId);
         if (user is null)
         {
             throw new ResourceNotFoundException("user", userId);
@@ -41,7 +40,7 @@ public class RetweetService(
         var currentPost = targetPost;
         while (currentPost.RetweetOfPostId.HasValue && string.IsNullOrWhiteSpace(currentPost.Content))
         {
-            var parent = unitOfWork.Posts.GetById(currentPost.RetweetOfPostId.Value);
+            var parent = await unitOfWork.Posts.GetByIdAsync(currentPost.RetweetOfPostId.Value);
             if (parent is null || parent.DeletedAt is not null || !parent.IsPublished)
             {
                 break;
@@ -53,7 +52,7 @@ public class RetweetService(
         // Duplicate prevention for pure retweets
         if (string.IsNullOrWhiteSpace(model.Content))
         {
-            var alreadyRetweeted = await unitOfWork.Posts.IfExists(p => p.UserId == userId 
+            var alreadyRetweeted = await unitOfWork.Posts.ExistsAsync(p => p.UserId == userId 
                 && p.RetweetOfPostId == resolvedPostId 
                 && (p.Content == null || p.Content == string.Empty || p.Content.Trim() == string.Empty));
 
@@ -81,6 +80,6 @@ public class RetweetService(
             logger.LogInformation("Retweet created successfully with PostId: {PostId}", retweet.PostId);
         }
 
-        return postService.Get(retweet.PostId);
+        return await postService.Get(retweet.PostId);
     }
 }

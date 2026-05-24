@@ -1,9 +1,9 @@
 using Application.Interfaces.Services;
 using Application.Models.Responses;
 using Microsoft.Extensions.Logging;
-using Shared.Exceptions;
+using Twitter.Domain.Exceptions;
 using Shared.Helpers;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 
 namespace Application.Services;
@@ -29,12 +29,11 @@ public class ReportService(
         unitOfWork.Create(report);
         await unitOfWork.SaveChangesAsync();
 
-        // Auto-increment report count if target is a post
         if (targetType == "Post")
         {
             if (Guid.TryParse(targetId, out var postId))
             {
-                var post = unitOfWork.Posts.GetById(postId);
+                var post = await unitOfWork.Posts.GetByIdAsync(postId);
                 if (post is not null)
                 {
                     post.ReportCount += 1;
@@ -53,7 +52,7 @@ public class ReportService(
 
     public async Task<ContentReport> AssignReportAsync(Guid reportId, Guid assignedTo)
     {
-        var report = unitOfWork.ContentReports.GetById(reportId);
+        var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
         if (report is null)
         {
             throw new ResourceNotFoundException("reporte", reportId);
@@ -69,7 +68,7 @@ public class ReportService(
 
     public async Task<ContentReport> ResolveReportAsync(Guid reportId, string resolution)
     {
-        var report = unitOfWork.ContentReports.GetById(reportId);
+        var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
         if (report is null)
         {
             throw new ResourceNotFoundException("reporte", reportId);
@@ -86,7 +85,7 @@ public class ReportService(
 
     public async Task<ContentReport> DismissReportAsync(Guid reportId, string reason)
     {
-        var report = unitOfWork.ContentReports.GetById(reportId);
+        var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
         if (report is null)
         {
             throw new ResourceNotFoundException("reporte", reportId);
@@ -101,16 +100,16 @@ public class ReportService(
         return report;
     }
 
-    public GenericResponse<List<ContentReport>> GetReportsAsync(string? status = null, int limit = 0, int offset = 0)
+    public async Task<GenericResponse<List<ContentReport>>> GetReportsAsync(string? status = null, int limit = 0, int offset = 0)
     {
         List<ContentReport> reports;
         if (!string.IsNullOrWhiteSpace(status))
         {
-            reports = unitOfWork.ContentReports.GetByStatusAsync(status, limit, offset).Result;
+            reports = await unitOfWork.ContentReports.GetByStatusAsync(status, limit, offset);
         }
         else
         {
-            reports = unitOfWork.ContentReports.GetAll(limit, offset);
+            reports = await unitOfWork.ContentReports.GetAllAsync(limit, offset);
         }
 
         return new GenericResponse<List<ContentReport>> { Data = reports };

@@ -15,9 +15,9 @@ public class AdminDashboardController(
 {
     [HttpGet("stats")]
     [RequirePermission(PermissionConstants.DashboardView)]
-    public IActionResult GetStats()
+    public async Task<IActionResult> GetStats()
     {
-        var rsp = dashboardService.GetStatsAsync();
+        var rsp = await dashboardService.GetStatsAsync();
         return OkEnvelope(rsp);
     }
 

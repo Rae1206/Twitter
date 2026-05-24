@@ -6,34 +6,18 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Constants;
 using Shared.Helpers;
 using Twitter.Domain.Interfaces.Services;
-using Twitter.WebApi.Atributos;
 using WebApi.Attributes;
 
 namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
-[DeveloperAuthor(Name = "ALEX", Description = "Controller fo users")]
 [ApiController]
 
 public class UserController(
     IUserService userService,
-    IEmailService emailService,
+    IAvatarService avatarService,
     IMediaStorageService mediaStorageService) : ApiControllerBase
 {
-    [HttpPost("test-email")]
-    public async Task<IActionResult> TestEmail([FromQuery] string to)
-    {
-        try
-        {
-            await emailService.SendWelcomeEmailAsync(to, "Test User");
-            return OkEnvelope(new { }, "Email enviado");
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, WebApi.Common.ApiResponseFactory.Error("No se pudo enviar el email de prueba", [ex.Message]));
-        }
-    }
-
     [HttpPost("create")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest model)
     {
@@ -41,18 +25,17 @@ public class UserController(
         return CreatedEnvelope(nameof(GetUserById), new { id = user.UserId }, user);
     }
 
-   // [Authorize(Roles = "Admin")]
     [HttpGet("list")]
-    public IActionResult GetAllUsers([FromQuery] GetAllUserRequest model)
+    public async Task<IActionResult> GetAllUsers([FromQuery] GetAllUserRequest model)
     {
-        var rsp = userService.Get(model.Limit ?? 0, model.Offset ?? 0, model.FullName, model.Email);
+        var rsp = await userService.Get(model.Limit ?? 0, model.Offset ?? 0, model.FullName, model.Email);
         return OkEnvelope(rsp);
     }
 
     [HttpGet("{id:guid}")]
-    public IActionResult GetUserById(Guid id)
+    public async Task<IActionResult> GetUserById(Guid id)
     {
-        var user = userService.Get(id);
+        var user = await userService.Get(id);
         return OkEnvelope(user);
     }
 
@@ -84,7 +67,7 @@ public class UserController(
             Length = file.Length
         };
 
-        var user = await userService.UploadProfilePhoto(userId, request);
+        var user = await avatarService.UploadProfilePhotoAsync(userId, request);
         return OkEnvelope(user, "Foto de perfil actualizada correctamente");
     }
 
@@ -97,7 +80,6 @@ public class UserController(
         return SuccessEnvelope("Contraseña actualizada correctamente");
     }
 
-    // [Authorize(Roles = "Admin")]
     [RequirePermission(PermissionConstants.UsersDelete)]
     [HttpDelete("{id:guid}/delete")]
     public async Task<IActionResult> DeleteUser(Guid id)
@@ -108,17 +90,17 @@ public class UserController(
 
     [Authorize]
     [HttpGet("me")]
-    public IActionResult GetCurrentUser()
+    public async Task<IActionResult> GetCurrentUser()
     {
         var userId = GetRequiredCurrentUserId();
-        var user = userService.Get(userId);
+        var user = await userService.Get(userId);
         return OkEnvelope(user);
     }
 
     [HttpGet("{id:guid}/avatar")]
     public async Task<IActionResult> GetUserAvatar(Guid id)
     {
-        var userPhoto = userService.GetProfilePhoto(id);
+        var userPhoto = await avatarService.GetProfilePhotoAsync(id);
         var isAbsoluteUrl = Uri.IsWellFormedUriString(userPhoto.Url, UriKind.Absolute);
 
         if (string.IsNullOrWhiteSpace(userPhoto.Url)
@@ -135,7 +117,7 @@ public class UserController(
         try
         {
             var stream = await mediaStorageService.GetFileStreamAsync(userPhoto.StoragePath!);
-            return File(stream, MediaContentTypeHelper.InferFromFileName(userPhoto.FileName!), userPhoto.FileName);
+            return File(stream, MediaContentTypeHelper.InferFromFileName(userPhoto.FileName!));
         }
         catch (FileNotFoundException)
         {

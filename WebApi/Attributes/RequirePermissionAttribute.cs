@@ -2,7 +2,7 @@ using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Shared.Constants;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using WebApi.Common;
 using WebApi.Extensions;
 
@@ -46,13 +46,12 @@ public class RequirePermissionAttribute : Attribute, IAuthorizationFilter
 
         if (permissions is null)
         {
-            // Fallback: resolve permissions from repository
             var unitOfWork = context.HttpContext.RequestServices.GetRequiredService<IUnitOfWork>();
-            var roleIds = unitOfWork.Roles.GetRolesByUserId(userId.Value).Select(r => r.RoleId).ToList();
+            var roleIds = unitOfWork.Roles.GetRolesByUserIdAsync(userId.Value).GetAwaiter().GetResult().Select(r => r.RoleId).ToList();
             var perms = new List<string>();
             foreach (var roleId in roleIds)
             {
-                var rolePerms = unitOfWork.RolePermissions.GetByRoleIdAsync(roleId).Result;
+                var rolePerms = unitOfWork.RolePermissions.GetByRoleIdAsync(roleId).GetAwaiter().GetResult();
                 perms.AddRange(rolePerms.Select(rp => rp.Permission.Name));
             }
             permissions = perms.Distinct().ToList();

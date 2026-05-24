@@ -1,5 +1,5 @@
 using Twitter.Domain.Database.SqlServer.Context;
-using Twitter.Domain.Database.SqlServer;
+using Twitter.Domain.Interfaces;
 using Twitter.Domain.Interfaces.Repositories;
 
 namespace Infrastructure.Persistence;
