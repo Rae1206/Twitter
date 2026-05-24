@@ -1,38 +1,36 @@
-# =====================================================
-# Twitter API - Dockerfile para Render
-# =====================================================
-# Optimizado para producción
-# =====================================================
+# syntax=docker/dockerfile:1
 
-# Stage 1: Build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copiar todo el codigo fuente
+COPY ["Twitter.sln", "./"]
+COPY ["WebApi/WebApi.csproj", "WebApi/"]
+COPY ["Application/Application.csproj", "Application/"]
+COPY ["Domain/Domain.csproj", "Domain/"]
+COPY ["Infrastructure/Infrastructure.csproj", "Infrastructure/"]
+COPY ["Shared/Shared.csproj", "Shared/"]
+
+RUN dotnet restore "WebApi/WebApi.csproj"
+
 COPY . .
+WORKDIR "/src/WebApi"
 
-# Restaurar todos los proyectos
-RUN dotnet restore
+RUN dotnet build "WebApi.csproj" -c Release -o /app/build --no-restore
 
-# Compilar todos los proyectos
-RUN dotnet build -c Release
+RUN dotnet publish "WebApi.csproj" -c Release -o /app/publish --no-build
 
-# Publicar WebApi
-RUN dotnet publish WebApi/WebApi.csproj -c Release -o /app/publish
-
-# Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Crear usuario no-root (opcional, para producción)
-RUN groupadd -r twitter && useradd -r -g twitter twitter || true
+RUN groupadd --system twitter \
+    && useradd --system --gid twitter --create-home --home-dir /home/twitter twitter
 
 COPY --from=build /app/publish .
-RUN chown -R twitter:twitter /app || true
+RUN chown -R twitter:twitter /app
 
 USER twitter
 
-# Exponer puerto
+ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "WebApi.dll"]

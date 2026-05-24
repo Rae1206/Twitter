@@ -19,8 +19,12 @@
 **/node_modules
 **/npm-debug.log
 **/obj
+**/secret.json
+**/appsettings.Development.json
+**/appsettings.Local.json
 **/secrets.dev.yaml
 **/values.dev.yaml
+.env
 LICENSE
 README.md
 !**/.gitignore
