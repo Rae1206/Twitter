@@ -15,9 +15,7 @@ RUN dotnet restore "WebApi/WebApi.csproj"
 COPY . .
 WORKDIR "/src/WebApi"
 
-RUN dotnet build "WebApi.csproj" -c Release -o /app/build --no-restore
-
-RUN dotnet publish "WebApi.csproj" -c Release -o /app/publish --no-build
+RUN dotnet publish "WebApi.csproj" -c Release -o /app/publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
