@@ -35,7 +35,7 @@ try
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddOpenApi();
     
-    // CORS para Scalar y frontend
+    // CORS para Scalar y frontend (SignalR requiere configuración especial)
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(policy =>
@@ -43,6 +43,15 @@ try
             policy.AllowAnyOrigin()
                   .AllowAnyMethod()
                   .AllowAnyHeader();
+        });
+        
+        // Política específica para SignalR
+        options.AddPolicy("SignalRPolicy", policy =>
+        {
+            policy.WithOrigins("http://localhost:4200", "http://localhost:5173") // Ajusta según tu frontend
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials(); // SignalR requiere credenciales
         });
     });
 

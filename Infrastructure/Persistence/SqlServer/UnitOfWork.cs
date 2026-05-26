@@ -1,3 +1,4 @@
+using Domain.Interfaces.Repositories;
 using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Interfaces;
 using Twitter.Domain.Interfaces.Repositories;
@@ -27,6 +28,8 @@ public class UnitOfWork : IUnitOfWork
     public IAdminSessionRepository AdminSessions { get; }
     public IPostMediaRepository PostMedias { get; }
     public ILikeRepository Likes { get; }
+    public IFollowRepository Follows { get; }
+    public IMessageRepository Messages { get; }
 
     public UnitOfWork(
         TwitterDbContext context,
@@ -44,7 +47,9 @@ public class UnitOfWork : IUnitOfWork
         IAdminDashboardStatRepository adminDashboardStatRepository,
         IAdminSessionRepository adminSessionRepository,
         IPostMediaRepository postMediaRepository,
-        ILikeRepository likeRepository)
+        ILikeRepository likeRepository,
+        IFollowRepository followRepository,
+        IMessageRepository messageRepository)
     {
         _context = context;
         Users = userRepository;
@@ -62,6 +67,8 @@ public class UnitOfWork : IUnitOfWork
         AdminSessions = adminSessionRepository;
         PostMedias = postMediaRepository;
         Likes = likeRepository;
+        Follows = followRepository;
+        Messages = messageRepository;
     }
 
     public void Create<T>(T entity) where T : class

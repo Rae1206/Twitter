@@ -396,3 +396,98 @@ PRINT ' Columnas en Posts: ReportCount, IsFlagged,';
 PRINT '   DeletedByAdminId, DeletedReason';
 PRINT '=================================================';
 GO
+
+-- =====================================================
+-- Follows - Sistema de seguidores
+-- =====================================================
+-- Relación N:N entre usuarios (quien sigue a quien)
+IF OBJECT_ID('dbo.Follows', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Follows (
+        FollowId       UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        FollowerId     UNIQUEIDENTIFIER NOT NULL,    -- Usuario que sigue
+        FollowingId    UNIQUEIDENTIFIER NOT NULL,    -- Usuario seguido
+        CreatedAt      DATETIME2        DEFAULT GETUTCDATE(),
+        CONSTRAINT UQ_Follow UNIQUE (FollowerId, FollowingId),
+        CONSTRAINT CHK_NoSelfFollow CHECK (FollowerId != FollowingId),
+        FOREIGN KEY (FollowerId)  REFERENCES dbo.Users(UserId) ON DELETE NO ACTION,
+        FOREIGN KEY (FollowingId) REFERENCES dbo.Users(UserId) ON DELETE NO ACTION
+    );
+    PRINT 'OK tabla dbo.Follows';
+END
+GO
+
+-- Columnas en Users para contadores de seguidores (desnormalización para performance)
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Users') AND name = 'FollowersCount')
+    ALTER TABLE dbo.Users ADD FollowersCount INT NOT NULL DEFAULT 0;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.Users') AND name = 'FollowingCount')
+    ALTER TABLE dbo.Users ADD FollowingCount INT NOT NULL DEFAULT 0;
+GO
+
+-- =====================================================
+-- Messages - Mensajería directa
+-- =====================================================
+-- Mensajes privados entre usuarios (1 a 1)
+IF OBJECT_ID('dbo.Messages', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.Messages (
+        MessageId      UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        SenderId       UNIQUEIDENTIFIER NOT NULL,    -- Usuario que envía
+        ReceiverId     UNIQUEIDENTIFIER NOT NULL,    -- Usuario que recibe
+        Content        NVARCHAR(1000)   NOT NULL,    -- Contenido del mensaje
+        IsRead         BIT              NOT NULL DEFAULT 0,
+        ReadAt         DATETIME2        NULL,        -- Cuándo fue leído
+        DeletedBySender   BIT           NOT NULL DEFAULT 0,
+        DeletedByReceiver BIT           NOT NULL DEFAULT 0,
+        CreatedAt      DATETIME2        DEFAULT GETUTCDATE(),
+        CONSTRAINT CHK_NoSelfMessage CHECK (SenderId != ReceiverId),
+        FOREIGN KEY (SenderId)   REFERENCES dbo.Users(UserId) ON DELETE NO ACTION,
+        FOREIGN KEY (ReceiverId) REFERENCES dbo.Users(UserId) ON DELETE NO ACTION
+    );
+    PRINT 'OK tabla dbo.Messages';
+END
+GO
+
+-- =====================================================
+-- ÍNDICES PARA FOLLOWS
+-- =====================================================
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Follows_FollowerId')
+    CREATE INDEX IX_Follows_FollowerId ON dbo.Follows(FollowerId, CreatedAt DESC);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Follows_FollowingId')
+    CREATE INDEX IX_Follows_FollowingId ON dbo.Follows(FollowingId, CreatedAt DESC);
+
+-- Índice para verificar si un usuario sigue a otro (query frecuente)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Follows_Check')
+    CREATE INDEX IX_Follows_Check ON dbo.Follows(FollowerId, FollowingId);
+GO
+
+-- =====================================================
+-- ÍNDICES PARA MESSAGES
+-- =====================================================
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Messages_SenderId')
+    CREATE INDEX IX_Messages_SenderId ON dbo.Messages(SenderId, CreatedAt DESC);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Messages_ReceiverId')
+    CREATE INDEX IX_Messages_ReceiverId ON dbo.Messages(ReceiverId, CreatedAt DESC);
+
+-- Índice para mensajes no leídos
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Messages_Unread')
+    CREATE INDEX IX_Messages_Unread ON dbo.Messages(ReceiverId, IsRead, CreatedAt DESC) 
+    WHERE IsRead = 0;
+
+-- Índice compuesto para listar conversaciones (ambos usuarios)
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Messages_Conversation')
+    CREATE INDEX IX_Messages_Conversation ON dbo.Messages(SenderId, ReceiverId, CreatedAt DESC);
+GO
+
+PRINT '=================================================';
+PRINT ' Módulo Social completado exitosamente';
+PRINT ' Tablas nuevas:';
+PRINT '   Follows (sistema de seguidores)';
+PRINT '   Messages (mensajería directa)';
+PRINT ' Columnas en Users: FollowersCount, FollowingCount';
+PRINT ' Índices optimizados para queries frecuentes';
+PRINT '=================================================';
+GO

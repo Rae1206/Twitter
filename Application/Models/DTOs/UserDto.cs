@@ -12,6 +12,8 @@ public class UserDto
     public bool IsSuspended { get; set; }
     public bool IsShadowBanned { get; set; }
     public DateTime? DeletedAt { get; set; }
+    public int FollowersCount { get; set; }
+    public int FollowingCount { get; set; }
     public List<string> Roles { get; set; } = new();
     public DateTime CreatedAt { get; set; }
 }

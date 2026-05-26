@@ -46,6 +46,10 @@ public partial class TwitterDbContext : DbContext
 
     public virtual DbSet<Like> Likes { get; set; }
 
+    public virtual DbSet<Follow> Follows { get; set; }
+
+    public virtual DbSet<Message> Messages { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Post>(entity =>
@@ -327,12 +331,63 @@ public partial class TwitterDbContext : DbContext
             entity.ToTable("Likes");
         });
 
+        modelBuilder.Entity<Follow>(entity =>
+        {
+            entity.HasKey(e => e.FollowId).HasName("PK_Follows");
+
+            entity.HasIndex(e => new { e.FollowerId, e.FollowingId }, "IX_Follows_FollowerId_FollowingId").IsUnique();
+            entity.HasIndex(e => e.FollowerId, "IX_Follows_FollowerId");
+            entity.HasIndex(e => e.FollowingId, "IX_Follows_FollowingId");
+
+            entity.Property(e => e.FollowId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Follower).WithMany(p => p.Following)
+                .HasForeignKey(d => d.FollowerId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.Following).WithMany(p => p.Followers)
+                .HasForeignKey(d => d.FollowingId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable("Follows");
+        });
+
+        modelBuilder.Entity<Message>(entity =>
+        {
+            entity.HasKey(e => e.MessageId).HasName("PK_Messages");
+
+            entity.HasIndex(e => e.SenderId, "IX_Messages_SenderId");
+            entity.HasIndex(e => e.ReceiverId, "IX_Messages_ReceiverId");
+            entity.HasIndex(e => new { e.SenderId, e.ReceiverId, e.CreatedAt }, "IX_Messages_Conversation");
+            entity.HasIndex(e => new { e.ReceiverId, e.IsRead, e.CreatedAt }, "IX_Messages_Unread")
+                .HasFilter("[IsRead] = 0");
+
+            entity.Property(e => e.MessageId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Content).HasMaxLength(1000).IsRequired();
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
+            entity.Property(e => e.DeletedBySender).HasDefaultValue(false);
+            entity.Property(e => e.DeletedByReceiver).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Sender).WithMany(p => p.SentMessages)
+                .HasForeignKey(d => d.SenderId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.Receiver).WithMany(p => p.ReceivedMessages)
+                .HasForeignKey(d => d.ReceiverId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable("Messages");
+        });
+
         // Global query filters for soft delete + ephemeral expiry.
         // EF Core translates DateTime.UtcNow to SYSUTCDATETIME() in SQL Server,
         // so the expiry check is evaluated on the database server in real time (no client-side cache, no gap).
         modelBuilder.Entity<User>().HasQueryFilter(u => u.DeletedAt == null);
         modelBuilder.Entity<Post>().HasQueryFilter(p => p.DeletedAt == null && (p.ExpiresAt == null || p.ExpiresAt > DateTime.UtcNow));
         modelBuilder.Entity<PostMedia>().HasQueryFilter(m => !m.IsDeleted);
+        modelBuilder.Entity<Message>().HasQueryFilter(m => !m.DeletedBySender && !m.DeletedByReceiver);
 
         OnModelCreatingPartial(modelBuilder);
     }

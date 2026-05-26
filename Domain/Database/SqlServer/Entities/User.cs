@@ -35,9 +35,21 @@ public partial class User
 
     public DateTime CreatedAt { get; set; }
 
+    public int FollowersCount { get; set; }
+
+    public int FollowingCount { get; set; }
+
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
     public virtual ICollection<Like> Likes { get; set; } = new List<Like>();
+
+    public virtual ICollection<Follow> Followers { get; set; } = new List<Follow>();
+
+    public virtual ICollection<Follow> Following { get; set; } = new List<Follow>();
+
+    public virtual ICollection<Message> SentMessages { get; set; } = new List<Message>();
+
+    public virtual ICollection<Message> ReceivedMessages { get; set; } = new List<Message>();
 }

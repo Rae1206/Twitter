@@ -1,3 +1,4 @@
+using Domain.Interfaces.Repositories;
 using Twitter.Domain.Interfaces.Repositories;
 
 namespace Twitter.Domain.Interfaces;
@@ -23,6 +24,10 @@ public interface IUnitOfWork
     IAdminSessionRepository AdminSessions { get; }
     IPostMediaRepository PostMedias { get; }
     ILikeRepository Likes { get; }
+
+    IFollowRepository Follows { get; }
+    IMessageRepository Messages { get; }
+
 
     void Create<T>(T entity) where T : class;
     void Update<T>(T entity) where T : class;

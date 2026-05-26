@@ -4,8 +4,10 @@ using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Interfaces;
 using Twitter.Domain.Interfaces.Repositories;
 using Twitter.Domain.Interfaces.Services;
+using Domain.Interfaces.Repositories;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
+using Infrastructure.Persistence.SqlServer.Repositories;
 using Infrastructure.Persistence.Storage;
 using Infrastructure.Background;
 using Application.Interfaces.Services;
@@ -74,6 +76,9 @@ public static class ServiceCollectionExtension
         services.AddScoped<IPostMediaRepository, PostMediaRepository>();
         services.AddScoped<ILikeRepository, LikeRepository>();
 
+        services.AddScoped<IFollowRepository, FollowRepository>();
+        services.AddScoped<IMessageRepository, MessageRepository>();
+
         // 6. Servicios de Application
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
@@ -89,6 +94,8 @@ public static class ServiceCollectionExtension
         services.AddScoped<ILikeService, LikeService>();
         services.AddScoped<IRetweetService, RetweetService>();
         services.AddScoped<IAvatarService, AvatarService>();
+        services.AddScoped<IFollowService, FollowService>();
+        services.AddScoped<IMessageService, MessageService>();
 
         // FluentValidation
         services.AddValidatorsFromAssemblyContaining<UploadMediaRequestValidator>();

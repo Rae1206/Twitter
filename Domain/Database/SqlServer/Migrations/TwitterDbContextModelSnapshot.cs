@@ -240,6 +240,37 @@ namespace Domain.Database.SqlServer.Migrations
                     b.ToTable("EmailTemplates");
                 });
 
+            modelBuilder.Entity("Twitter.Domain.Database.SqlServer.Entities.Follow", b =>
+                {
+                    b.Property<Guid>("FollowId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(sysutcdatetime())");
+
+                    b.Property<Guid>("FollowerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FollowingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("FollowId")
+                        .HasName("PK_Follows");
+
+                    b.HasIndex(new[] { "FollowerId" }, "IX_Follows_FollowerId");
+
+                    b.HasIndex(new[] { "FollowerId", "FollowingId" }, "IX_Follows_FollowerId_FollowingId")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "FollowingId" }, "IX_Follows_FollowingId");
+
+                    b.ToTable("Follows", (string)null);
+                });
+
             modelBuilder.Entity("Twitter.Domain.Database.SqlServer.Entities.Like", b =>
                 {
                     b.Property<Guid>("LikeId")
@@ -267,6 +298,62 @@ namespace Domain.Database.SqlServer.Migrations
                         .IsUnique();
 
                     b.ToTable("Likes", (string)null);
+                });
+
+            modelBuilder.Entity("Twitter.Domain.Database.SqlServer.Entities.Message", b =>
+                {
+                    b.Property<Guid>("MessageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(sysutcdatetime())");
+
+                    b.Property<bool>("DeletedByReceiver")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("DeletedBySender")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ReceiverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("MessageId")
+                        .HasName("PK_Messages");
+
+                    b.HasIndex(new[] { "SenderId", "ReceiverId", "CreatedAt" }, "IX_Messages_Conversation");
+
+                    b.HasIndex(new[] { "ReceiverId" }, "IX_Messages_ReceiverId");
+
+                    b.HasIndex(new[] { "SenderId" }, "IX_Messages_SenderId");
+
+                    b.HasIndex(new[] { "ReceiverId", "IsRead", "CreatedAt" }, "IX_Messages_Unread")
+                        .HasFilter("[IsRead] = 0");
+
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("Twitter.Domain.Database.SqlServer.Entities.Permission", b =>
@@ -560,6 +647,12 @@ namespace Domain.Database.SqlServer.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<int>("FollowersCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FollowingCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -719,6 +812,25 @@ namespace Domain.Database.SqlServer.Migrations
                     b.Navigation("Reporter");
                 });
 
+            modelBuilder.Entity("Twitter.Domain.Database.SqlServer.Entities.Follow", b =>
+                {
+                    b.HasOne("Twitter.Domain.Database.SqlServer.Entities.User", "Follower")
+                        .WithMany("Following")
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Twitter.Domain.Database.SqlServer.Entities.User", "Following")
+                        .WithMany("Followers")
+                        .HasForeignKey("FollowingId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Follower");
+
+                    b.Navigation("Following");
+                });
+
             modelBuilder.Entity("Twitter.Domain.Database.SqlServer.Entities.Like", b =>
                 {
                     b.HasOne("Twitter.Domain.Database.SqlServer.Entities.Post", "Post")
@@ -736,6 +848,25 @@ namespace Domain.Database.SqlServer.Migrations
                     b.Navigation("Post");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Twitter.Domain.Database.SqlServer.Entities.Message", b =>
+                {
+                    b.HasOne("Twitter.Domain.Database.SqlServer.Entities.User", "Receiver")
+                        .WithMany("ReceivedMessages")
+                        .HasForeignKey("ReceiverId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Twitter.Domain.Database.SqlServer.Entities.User", "Sender")
+                        .WithMany("SentMessages")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Receiver");
+
+                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("Twitter.Domain.Database.SqlServer.Entities.Post", b =>
@@ -854,9 +985,17 @@ namespace Domain.Database.SqlServer.Migrations
 
             modelBuilder.Entity("Twitter.Domain.Database.SqlServer.Entities.User", b =>
                 {
+                    b.Navigation("Followers");
+
+                    b.Navigation("Following");
+
                     b.Navigation("Likes");
 
                     b.Navigation("Posts");
+
+                    b.Navigation("ReceivedMessages");
+
+                    b.Navigation("SentMessages");
 
                     b.Navigation("UserRoles");
                 });
