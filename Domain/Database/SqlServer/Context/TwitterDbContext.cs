@@ -336,8 +336,8 @@ public partial class TwitterDbContext : DbContext
             entity.HasKey(e => e.FollowId).HasName("PK_Follows");
 
             entity.HasIndex(e => new { e.FollowerId, e.FollowingId }, "IX_Follows_FollowerId_FollowingId").IsUnique();
-            entity.HasIndex(e => e.FollowerId, "IX_Follows_FollowerId");
-            entity.HasIndex(e => e.FollowingId, "IX_Follows_FollowingId");
+            entity.HasIndex(e => new { e.FollowerId, e.CreatedAt }, "IX_Follows_FollowerId");
+            entity.HasIndex(e => new { e.FollowingId, e.CreatedAt }, "IX_Follows_FollowingId");
 
             entity.Property(e => e.FollowId).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
@@ -366,6 +366,7 @@ public partial class TwitterDbContext : DbContext
             entity.Property(e => e.MessageId).HasDefaultValueSql("(newid())");
             entity.Property(e => e.Content).HasMaxLength(1000).IsRequired();
             entity.Property(e => e.IsRead).HasDefaultValue(false);
+            entity.Property(e => e.ReadAt);
             entity.Property(e => e.DeletedBySender).HasDefaultValue(false);
             entity.Property(e => e.DeletedByReceiver).HasDefaultValue(false);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");

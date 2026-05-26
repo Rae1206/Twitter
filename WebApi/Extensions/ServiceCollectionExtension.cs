@@ -6,7 +6,6 @@ using Twitter.Domain.Interfaces.Repositories;
 using Twitter.Domain.Interfaces.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
-using Infrastructure.Persistence.SqlServer.Repositories;
 using Infrastructure.Persistence.Storage;
 using Infrastructure.Background;
 using Application.Interfaces.Services;
