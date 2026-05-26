@@ -4,7 +4,6 @@ using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Interfaces;
 using Twitter.Domain.Interfaces.Repositories;
 using Twitter.Domain.Interfaces.Services;
-using Domain.Interfaces.Repositories;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Repositories;
 using Infrastructure.Persistence.SqlServer.Repositories;

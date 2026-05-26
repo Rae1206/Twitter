@@ -1,7 +1,6 @@
-using Domain.Interfaces.Repositories;
+using Twitter.Domain.Interfaces.Repositories;
 using Twitter.Domain.Database.SqlServer.Context;
 using Twitter.Domain.Interfaces;
-using Twitter.Domain.Interfaces.Repositories;
 
 namespace Infrastructure.Persistence;
 

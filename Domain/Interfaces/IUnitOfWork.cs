@@ -1,4 +1,3 @@
-using Domain.Interfaces.Repositories;
 using Twitter.Domain.Interfaces.Repositories;
 
 namespace Twitter.Domain.Interfaces;
