@@ -11,14 +11,21 @@ namespace WebApi.Controllers;
 [Authorize]
 [RequireNotSuspended]
 public class AdminReportController(
-    IReportService reportService,
-    IAuditService auditService) : ApiControllerBase
+    IReportService reportService) : ApiControllerBase
 {
     [HttpGet("pending")]
     [RequirePermission(PermissionConstants.ReportsView)]
     public async Task<IActionResult> GetPendingReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
-        var rsp = await reportService.GetReportsAsync("Pending", limit, offset);
+        var rsp = await reportService.GetReportsAsync(ReportConstants.STATUS_PENDING, limit, offset);
+        return OkEnvelope(rsp);
+    }
+
+    [HttpGet("under-review")]
+    [RequirePermission(PermissionConstants.ReportsView)]
+    public async Task<IActionResult> GetUnderReviewReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
+    {
+        var rsp = await reportService.GetReportsAsync(ReportConstants.STATUS_UNDER_REVIEW, limit, offset);
         return OkEnvelope(rsp);
     }
 
@@ -30,20 +37,20 @@ public class AdminReportController(
         return OkEnvelope(rsp);
     }
 
-    [HttpPost("create")]
-    [RequirePermission(PermissionConstants.ReportsView)]
-    public async Task<IActionResult> CreateReport([FromBody] CreateReportRequest model)
-    {
-        var reporterId = GetRequiredCurrentUserId();
-        var report = await reportService.CreateReportAsync(reporterId, model.TargetType, model.TargetId, model.Reason);
-        return CreatedEnvelope(nameof(GetAllReports), new { }, report);
-    }
-
     [HttpPut("{id:guid}/assign")]
     [RequirePermission(PermissionConstants.ReportsAssign)]
     public async Task<IActionResult> AssignReport(Guid id, [FromBody] AssignReportRequest model)
     {
-        var report = await reportService.AssignReportAsync(id, model.AssignedTo);
+        var adminId = GetRequiredCurrentUserId();
+        var report = await reportService.AssignReportAsync(id, model.AssignedToAdminId);
+        return OkEnvelope(report);
+    }
+
+    [HttpPut("{id:guid}/review")]
+    [RequirePermission(PermissionConstants.ReportsAssign)]
+    public async Task<IActionResult> StartReview(Guid id)
+    {
+        var report = await reportService.StartReviewAsync(id);
         return OkEnvelope(report);
     }
 
@@ -51,7 +58,8 @@ public class AdminReportController(
     [RequirePermission(PermissionConstants.ReportsResolve)]
     public async Task<IActionResult> ResolveReport(Guid id, [FromBody] ResolveReportRequest model)
     {
-        var report = await reportService.ResolveReportAsync(id, model.Resolution);
+        var adminId = GetRequiredCurrentUserId();
+        var report = await reportService.ResolveReportAsync(id, model.Resolution, adminId);
         return OkEnvelope(report);
     }
 
@@ -59,21 +67,15 @@ public class AdminReportController(
     [RequirePermission(PermissionConstants.ReportsResolve)]
     public async Task<IActionResult> DismissReport(Guid id, [FromBody] DismissReportRequest model)
     {
-        var report = await reportService.DismissReportAsync(id, model.Reason);
+        var adminId = GetRequiredCurrentUserId();
+        var report = await reportService.DismissReportAsync(id, model.Reason, adminId);
         return OkEnvelope(report);
     }
 }
 
-public class CreateReportRequest
-{
-    public string TargetType { get; set; } = null!;
-    public string TargetId { get; set; } = null!;
-    public string Reason { get; set; } = null!;
-}
-
 public class AssignReportRequest
 {
-    public Guid AssignedTo { get; set; }
+    public Guid AssignedToAdminId { get; set; }
 }
 
 public class ResolveReportRequest

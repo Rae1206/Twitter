@@ -4,7 +4,8 @@ using WebApi.Extensions;
 using Microsoft.AspNetCore.HttpOverrides;
 using WebApi.Common;
 
-// Logger de arranque para errores durante el inicio
+// Logger de arranque para errores durante el inicio.
+// Solo escribe a consola hasta que UseSerilog lo reemplaza con la configuración completa.
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
@@ -24,7 +25,7 @@ try
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-        options.KnownNetworks.Clear();
+        options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
     });
     builder.Services.AddControllers();

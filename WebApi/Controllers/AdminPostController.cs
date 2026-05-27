@@ -15,7 +15,7 @@ namespace WebApi.Controllers;
 public class AdminPostController(
     IPostService postService,
     IUnitOfWork unitOfWork,
-    IAuditService auditService,
+    IAuditService _,
     IEmailService emailService) : ApiControllerBase
 {
     [HttpGet("list")]

@@ -28,6 +28,9 @@ public abstract class ApiControllerBase : ControllerBase
     protected IActionResult NotFoundEnvelope(string? message = null, IEnumerable<string>? errors = null) =>
         ApiResponseFactory.NotFound(message, errors);
 
+    protected IActionResult ConflictEnvelope(string? message = null, IEnumerable<string>? errors = null) =>
+        ApiResponseFactory.Conflict(message, errors);
+
     protected Guid? TryGetCurrentUserId() => User.TryGetUserId();
 
     protected Guid GetRequiredCurrentUserId() => User.GetRequiredUserId();

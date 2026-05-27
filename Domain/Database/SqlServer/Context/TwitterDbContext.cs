@@ -227,22 +227,34 @@ public partial class TwitterDbContext : DbContext
         {
             entity.HasKey(e => e.ReportId).HasName("PK__ContentReports__6D6FDC4E8D93F157");
 
-            entity.HasIndex(e => e.ReporterId, "IX_ContentReports_ReporterId");
-            entity.HasIndex(e => e.TargetType, "IX_ContentReports_TargetType");
-            entity.HasIndex(e => e.Status, "IX_ContentReports_Status");
-            entity.HasIndex(e => e.AssignedTo, "IX_ContentReports_AssignedTo");
+            entity.HasIndex(e => new { e.Status, e.Priority, e.CreatedAt }, "IX_Reports_Status");
+            entity.HasIndex(e => new { e.EntityType, e.EntityId }, "IX_Reports_EntityType");
 
             entity.Property(e => e.ReportId).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.TargetType).HasMaxLength(50).IsRequired();
-            entity.Property(e => e.TargetId).HasMaxLength(100).IsRequired();
-            entity.Property(e => e.Reason).HasMaxLength(500).IsRequired();
-            entity.Property(e => e.Status).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.ReporterUserId);
+            entity.Property(e => e.EntityType).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.EntityId);
+            entity.Property(e => e.Category).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Status).HasMaxLength(20).IsRequired().HasDefaultValue("pending");
+            entity.Property(e => e.Priority).HasDefaultValue((byte)2);
+            entity.Property(e => e.AssignedToAdminId);
             entity.Property(e => e.Resolution).HasMaxLength(500);
+            entity.Property(e => e.ResolvedAt);
+            entity.Property(e => e.ResolvedByAdminId);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
 
             entity.HasOne(d => d.Reporter).WithMany()
-                .HasForeignKey(d => d.ReporterId)
+                .HasForeignKey(d => d.ReporterUserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(d => d.AssignedToAdmin).WithMany()
+                .HasForeignKey(d => d.AssignedToAdminId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.ResolvedByAdmin).WithMany()
+                .HasForeignKey(d => d.ResolvedByAdminId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<SystemConfig>(entity =>

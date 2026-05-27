@@ -13,8 +13,8 @@ namespace WebApi.Controllers;
 [RequireNotSuspended]
 public class AdminUserController(
     IAdminService adminService,
-    IAuditService auditService,
-    ICacheService cacheService) : ApiControllerBase
+    IAuditService _auditService,
+    ICacheService _cacheService) : ApiControllerBase
 {
     [HttpGet("list")]
     [RequirePermission(PermissionConstants.UsersView)]

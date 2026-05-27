@@ -15,7 +15,6 @@ public static class LoggingExtensions
         {
             configuration
                 .ReadFrom.Configuration(context.Configuration)
-                .WriteTo.Console()
                 .Enrich.FromLogContext()
                 .Enrich.WithProperty("Application", "Twitter.WebApi");
 

@@ -12,7 +12,7 @@ namespace WebApi.Controllers;
 [RequireNotSuspended]
 public class AdminConfigController(
     IConfigService configService,
-    IAuditService auditService) : ApiControllerBase
+    IAuditService _) : ApiControllerBase
 {
     [HttpGet("all")]
     [RequirePermission(PermissionConstants.ConfigView)]

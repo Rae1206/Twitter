@@ -13,7 +13,7 @@ namespace WebApi.Controllers;
 [RequireNotSuspended]
 public class AdminSuspensionController(
     ISuspensionService suspensionService,
-    IAuditService auditService) : ApiControllerBase
+    IAuditService _) : ApiControllerBase
 {
     [HttpPost("suspend")]
     [RequirePermission(PermissionConstants.UsersBan)]
