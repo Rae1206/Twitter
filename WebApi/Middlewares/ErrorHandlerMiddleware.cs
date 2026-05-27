@@ -54,7 +54,7 @@ public class ErrorHandlerMiddleware
             ForbiddenException ex => Build(StatusCodes.Status403Forbidden, ex.Message),
             KeyNotFoundException => Build(StatusCodes.Status404NotFound, ErrorConstants.RESOURCE_NOT_FOUND),
             ArgumentException => Build(StatusCodes.Status400BadRequest, exception.Message),
-            UnauthorizedAccessException => Build(StatusCodes.Status401Unauthorized, ErrorConstants.UNAUTHORIZED),
+            UnauthorizedAccessException ex => Build(StatusCodes.Status401Unauthorized, ex.Message),
             _ => Build(StatusCodes.Status500InternalServerError, string.Format(ErrorConstants.UNEXPECTED_ERROR, traceId))
         };
 
