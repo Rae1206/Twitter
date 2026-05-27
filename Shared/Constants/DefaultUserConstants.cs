@@ -5,7 +5,7 @@ namespace Shared.Constants;
 /// </summary>
 public static class DefaultUserConstants
 {
-    public const string AdminEmail = "admin@twitter.local";
-    public const string AdminPassword = "Admin@1234";
-    public const string AdminFullName = "Administrador del Sistema";
+    public const string AdminEmail = "testadmin@test.local";
+    public const string AdminPassword = "Test@12345";
+    public const string AdminFullName = "Test Administrator";
 }

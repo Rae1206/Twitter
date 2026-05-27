@@ -53,6 +53,6 @@ public class ContentReportRepository : GenericRepository<ContentReport, Guid>, I
             r.ReporterUserId == reporterUserId &&
             r.EntityType == entityType &&
             r.EntityId == entityId &&
-            (r.Status == "pending" || r.Status == "under_review"));
+            (r.Status == "pending"));
     }
 }

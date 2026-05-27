@@ -238,7 +238,6 @@ public partial class TwitterDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.Status).HasMaxLength(20).IsRequired().HasDefaultValue("pending");
             entity.Property(e => e.Priority).HasDefaultValue((byte)2);
-            entity.Property(e => e.AssignedToAdminId);
             entity.Property(e => e.Resolution).HasMaxLength(500);
             entity.Property(e => e.ResolvedAt);
             entity.Property(e => e.ResolvedByAdminId);
@@ -247,10 +246,6 @@ public partial class TwitterDbContext : DbContext
             entity.HasOne(d => d.Reporter).WithMany()
                 .HasForeignKey(d => d.ReporterUserId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(d => d.AssignedToAdmin).WithMany()
-                .HasForeignKey(d => d.AssignedToAdminId)
-                .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(d => d.ResolvedByAdmin).WithMany()
                 .HasForeignKey(d => d.ResolvedByAdminId)

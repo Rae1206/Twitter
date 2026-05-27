@@ -24,7 +24,7 @@ public class ContentReport
     public string? Description { get; set; }
 
     /// <summary>
-    /// Estados: "pending", "under_review", "resolved", "dismissed".
+    /// Estados: "pending", "resolved", "dismissed".
     /// </summary>
     public string Status { get; set; } = null!;
 
@@ -33,7 +33,6 @@ public class ContentReport
     /// </summary>
     public byte Priority { get; set; }
 
-    public Guid? AssignedToAdminId { get; set; }
 
     public string? Resolution { get; set; }
 
@@ -45,7 +44,6 @@ public class ContentReport
 
     public virtual User Reporter { get; set; } = null!;
 
-    public virtual User? AssignedToAdmin { get; set; }
 
     public virtual User? ResolvedByAdmin { get; set; }
 }

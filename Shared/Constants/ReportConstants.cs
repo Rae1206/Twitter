@@ -7,7 +7,6 @@ public static class ReportConstants
 {
     // === Estados de reporte ===
     public const string STATUS_PENDING = "pending";
-    public const string STATUS_UNDER_REVIEW = "under_review";
     public const string STATUS_RESOLVED = "resolved";
     public const string STATUS_DISMISSED = "dismissed";
 

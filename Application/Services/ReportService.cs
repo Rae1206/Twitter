@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Application.Interfaces.Services;
+using Application.Models.DTOs;
 using Application.Models.Responses;
 using Microsoft.Extensions.Logging;
 using Shared.Constants;
@@ -121,38 +123,9 @@ public class ReportService(
         return await unitOfWork.ContentReports.GetByEntityAsync(entityType, entityId, limit, offset);
     }
 
+
     // === Admin: gestión ===
 
-    public async Task<ContentReport> AssignReportAsync(Guid reportId, Guid adminId)
-    {
-        var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
-        if (report is null)
-        {
-            throw new ResourceNotFoundException("reporte", reportId);
-        }
-
-        report.AssignedToAdminId = adminId;
-        report.Status = ReportConstants.STATUS_UNDER_REVIEW;
-        unitOfWork.Update(report);
-        await unitOfWork.SaveChangesAsync();
-
-        return report;
-    }
-
-    public async Task<ContentReport> StartReviewAsync(Guid reportId)
-    {
-        var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
-        if (report is null)
-        {
-            throw new ResourceNotFoundException("reporte", reportId);
-        }
-
-        report.Status = ReportConstants.STATUS_UNDER_REVIEW;
-        unitOfWork.Update(report);
-        await unitOfWork.SaveChangesAsync();
-
-        return report;
-    }
 
     public async Task<ContentReport> ResolveReportAsync(Guid reportId, string resolution, Guid adminId)
     {
@@ -190,7 +163,7 @@ public class ReportService(
         return report;
     }
 
-    public async Task<GenericResponse<List<ContentReport>>> GetReportsAsync(string? status = null, int limit = 0, int offset = 0)
+    public async Task<GenericResponse<List<AdminReportDto>>> GetReportsAsync(string? status = null, int limit = 0, int offset = 0)
     {
         List<ContentReport> reports;
         if (!string.IsNullOrWhiteSpace(status))
@@ -202,6 +175,81 @@ public class ReportService(
             reports = await unitOfWork.ContentReports.GetAllAsync(limit, offset);
         }
 
-        return new GenericResponse<List<ContentReport>> { Data = reports };
+        var dtos = new List<AdminReportDto>();
+
+        if (reports.Count > 0)
+        {
+            // Batch-fetch posts to avoid N+1 queries
+            var postIds = reports
+                .Where(r => string.Equals(r.EntityType, ReportConstants.ENTITY_TYPE_POST, StringComparison.OrdinalIgnoreCase))
+                .Select(r => r.EntityId)
+                .Distinct()
+                .ToList();
+
+            var postsMap = new Dictionary<Guid, Post>();
+            if (postIds.Count > 0)
+            {
+                var posts = await unitOfWork.Posts.GetAllAsync(filter: p => postIds.Contains(p.PostId));
+                postsMap = posts.ToDictionary(p => p.PostId);
+            }
+
+            // Batch-fetch messages to avoid N+1 queries
+            var messageIds = reports
+                .Where(r => string.Equals(r.EntityType, ReportConstants.ENTITY_TYPE_MESSAGE, StringComparison.OrdinalIgnoreCase))
+                .Select(r => r.EntityId)
+                .Distinct()
+                .ToList();
+
+            var messagesMap = new Dictionary<Guid, Message>();
+            if (messageIds.Count > 0)
+            {
+                var messages = await unitOfWork.Messages.GetAllAsync(filter: m => messageIds.Contains(m.MessageId));
+                messagesMap = messages.ToDictionary(m => m.MessageId);
+            }
+
+            foreach (var r in reports)
+            {
+                var dto = new AdminReportDto
+                {
+                    ReportId = r.ReportId,
+                    ReporterUserId = r.ReporterUserId,
+                    EntityType = r.EntityType,
+                    EntityId = r.EntityId,
+                    Category = r.Category,
+                    Reason = r.Category,
+                    Description = r.Description,
+                    Status = r.Status,
+                    Priority = r.Priority,
+                    Resolution = r.Resolution,
+                    ResolvedAt = r.ResolvedAt,
+                    ResolvedByAdminId = r.ResolvedByAdminId,
+                    CreatedAt = r.CreatedAt
+                };
+
+                if (string.Equals(r.EntityType, ReportConstants.ENTITY_TYPE_POST, StringComparison.OrdinalIgnoreCase))
+                {
+                    dto.PostId = r.EntityId;
+                    if (postsMap.TryGetValue(r.EntityId, out var post))
+                    {
+                        dto.ReportedUserId = post.UserId;
+                    }
+                }
+                else if (string.Equals(r.EntityType, ReportConstants.ENTITY_TYPE_USER, StringComparison.OrdinalIgnoreCase))
+                {
+                    dto.ReportedUserId = r.EntityId;
+                }
+                else if (string.Equals(r.EntityType, ReportConstants.ENTITY_TYPE_MESSAGE, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (messagesMap.TryGetValue(r.EntityId, out var message))
+                    {
+                        dto.ReportedUserId = message.SenderId;
+                    }
+                }
+
+                dtos.Add(dto);
+            }
+        }
+
+        return new GenericResponse<List<AdminReportDto>> { Data = dtos };
     }
 }

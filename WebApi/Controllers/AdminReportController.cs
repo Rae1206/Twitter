@@ -21,37 +21,12 @@ public class AdminReportController(
         return OkEnvelope(rsp);
     }
 
-    [HttpGet("under-review")]
-    [RequirePermission(PermissionConstants.ReportsView)]
-    public async Task<IActionResult> GetUnderReviewReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
-    {
-        var rsp = await reportService.GetReportsAsync(ReportConstants.STATUS_UNDER_REVIEW, limit, offset);
-        return OkEnvelope(rsp);
-    }
-
     [HttpGet("all")]
     [RequirePermission(PermissionConstants.ReportsView)]
     public async Task<IActionResult> GetAllReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
         var rsp = await reportService.GetReportsAsync(null, limit, offset);
         return OkEnvelope(rsp);
-    }
-
-    [HttpPut("{id:guid}/assign")]
-    [RequirePermission(PermissionConstants.ReportsAssign)]
-    public async Task<IActionResult> AssignReport(Guid id, [FromBody] AssignReportRequest model)
-    {
-        var adminId = GetRequiredCurrentUserId();
-        var report = await reportService.AssignReportAsync(id, model.AssignedToAdminId);
-        return OkEnvelope(report);
-    }
-
-    [HttpPut("{id:guid}/review")]
-    [RequirePermission(PermissionConstants.ReportsAssign)]
-    public async Task<IActionResult> StartReview(Guid id)
-    {
-        var report = await reportService.StartReviewAsync(id);
-        return OkEnvelope(report);
     }
 
     [HttpPut("{id:guid}/resolve")]
@@ -71,11 +46,6 @@ public class AdminReportController(
         var report = await reportService.DismissReportAsync(id, model.Reason, adminId);
         return OkEnvelope(report);
     }
-}
-
-public class AssignReportRequest
-{
-    public Guid AssignedToAdminId { get; set; }
 }
 
 public class ResolveReportRequest
