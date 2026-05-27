@@ -6,6 +6,7 @@ using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Database.SqlServer.Entities.Enums;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using Shared.Constants;
 using Twitter.Domain.Exceptions;
 using Shared.Helpers;
@@ -140,7 +141,7 @@ public class PostService(
         }
 
         var query = unitOfWork.Posts.GetQueryable().Where(p => p.PostId == postId);
-        var dto = ProjectPostToDto(query).FirstOrDefault();
+        var dto = await ProjectPostToDto(query).FirstOrDefaultAsync();
 
         if (dto is null)
         {

@@ -28,7 +28,11 @@ try
         options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
     });
-    builder.Services.AddControllers();
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        });
     builder.Services.Configure<ApiBehaviorOptions>(options =>
     {
         options.InvalidModelStateResponseFactory = context => ApiResponseFactory.Validation(context.ModelState);
