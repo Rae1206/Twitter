@@ -18,9 +18,9 @@ public class AdminUserController(
 {
     [HttpGet("list")]
     [RequirePermission(PermissionConstants.UsersView)]
-    public async Task<IActionResult> ListUsers([FromQuery] int limit = 0, [FromQuery] int offset = 0, [FromQuery] string? fullName = null, [FromQuery] string? email = null, [FromQuery] bool? includeDeleted = null)
+    public async Task<IActionResult> ListUsers([FromQuery] int limit = 0, [FromQuery] int offset = 0, [FromQuery] string? nickname = null, [FromQuery] string? email = null, [FromQuery] bool? includeDeleted = null)
     {
-        var rsp = await adminService.ListUsersAsync(limit, offset, fullName, email, includeDeleted);
+        var rsp = await adminService.ListUsersAsync(limit, offset, nickname, email, includeDeleted);
         return OkEnvelope(rsp);
     }
 

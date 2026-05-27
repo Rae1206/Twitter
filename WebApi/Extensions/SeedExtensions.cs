@@ -46,7 +46,7 @@ public static class SeedExtensions
             adminUser = new User
             {
                 UserId = Guid.NewGuid(),
-                FullName = DefaultUserConstants.AdminFullName,
+                Nickname = DefaultUserConstants.AdminNickname,
                 Email = DefaultUserConstants.AdminEmail,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(DefaultUserConstants.AdminPassword),
                 IsActive = true,

@@ -28,7 +28,7 @@ public class UserController(
     [HttpGet("list")]
     public async Task<IActionResult> GetAllUsers([FromQuery] GetAllUserRequest model)
     {
-        var rsp = await userService.Get(model.Limit ?? 0, model.Offset ?? 0, model.FullName, model.Email);
+        var rsp = await userService.Get(model.Limit ?? 0, model.Offset ?? 0, model.Nickname, model.Email);
         return OkEnvelope(rsp);
     }
 

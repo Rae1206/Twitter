@@ -7,5 +7,5 @@ public static class DefaultUserConstants
 {
     public const string AdminEmail = "testadmin@test.local";
     public const string AdminPassword = "Test@12345";
-    public const string AdminFullName = "Test Administrator";
+    public const string AdminNickname = "Admin";
 }

@@ -298,7 +298,7 @@ public class PostService(
         {
             PostId = p.PostId,
             UserId = p.UserId,
-            UserFullName = p.User != null ? p.User.FullName : string.Empty,
+            UserNickname = p.User != null ? p.User.Nickname : string.Empty,
             UserAvatar = null,
             Username = p.User != null ? p.User.Email : string.Empty,
             Content = p.Content,
@@ -330,7 +330,7 @@ public class PostService(
             {
                 PostId = entity.PostId,
                 UserId = entity.UserId,
-                UserFullName = user?.FullName ?? string.Empty,
+                UserNickname = user?.Nickname ?? string.Empty,
                 UserAvatar = null,
                 Username = user?.Email ?? string.Empty,
                 Content = entity.Content,

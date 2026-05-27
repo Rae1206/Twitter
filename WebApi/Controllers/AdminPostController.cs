@@ -63,7 +63,7 @@ public class AdminPostController(
 
         if (!string.IsNullOrEmpty(post.User?.Email))
         {
-            await emailService.SendPostRemovedAsync(post.User.Email, post.User.FullName, reason ?? "Violation of terms");
+            await emailService.SendPostRemovedAsync(post.User.Email, post.User.Nickname, reason ?? "Violation of terms");
         }
 
         return SuccessEnvelope("Publicación eliminada correctamente");

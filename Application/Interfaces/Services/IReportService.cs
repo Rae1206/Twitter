@@ -15,7 +15,7 @@ public interface IReportService
     Task<List<ContentReport>> GetReportsByEntityAsync(string entityType, Guid entityId, int limit = 0, int offset = 0);
 
     // === Admin: gestión ===
-    Task<ContentReport> ResolveReportAsync(Guid reportId, string resolution, Guid adminId);
-    Task<ContentReport> DismissReportAsync(Guid reportId, string reason, Guid adminId);
+    Task<ContentReport> ResolveReportAsync(Guid reportId, string? resolution, Guid adminId);
+    Task<ContentReport> DismissReportAsync(Guid reportId, string? reason, Guid adminId);
     Task<GenericResponse<List<AdminReportDto>>> GetReportsAsync(string? status = null, int limit = 0, int offset = 0);
 }

@@ -5,7 +5,7 @@ public class RetweetDto
     public Guid RetweetId { get; set; }
     public Guid OriginalPostId { get; set; }
     public Guid UserId { get; set; }
-    public string UserFullName { get; set; } = string.Empty;
+    public string UserNickname { get; set; } = string.Empty;
     public string? UserAvatar { get; set; }
     public string? Username { get; set; }
     public string? Comment { get; set; }  // Retweet con cita

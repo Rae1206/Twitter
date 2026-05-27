@@ -16,12 +16,12 @@ public class UserRepository : GenericRepository<User, Guid>, IUserRepository
     {
     }
 
-    public async Task<List<User>> GetAllAsync(int limit, int offset, string? fullName = null, string? email = null)
+    public async Task<List<User>> GetAllAsync(int limit, int offset, string? nickname = null, string? email = null)
     {
         var query = _context.Users.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(fullName))
-            query = query.Where(u => u.FullName.Contains(fullName));
+        if (!string.IsNullOrWhiteSpace(nickname))
+            query = query.Where(u => u.Nickname.Contains(nickname));
 
         if (!string.IsNullOrWhiteSpace(email))
             query = query.Where(u => u.Email.Contains(email));

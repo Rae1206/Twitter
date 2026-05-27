@@ -53,11 +53,11 @@ public class SuspensionService(
 
         if (suspensionType == "Permanent")
         {
-            await emailService.SendAccountBannedPermanentAsync(user.Email, user.FullName, reason);
+            await emailService.SendAccountBannedPermanentAsync(user.Email, user.Nickname, reason);
         }
         else
         {
-            await emailService.SendAccountSuspendedAsync(user.Email, user.FullName, reason, endsAt);
+            await emailService.SendAccountSuspendedAsync(user.Email, user.Nickname, reason, endsAt);
         }
 
         return suspension;
@@ -93,7 +93,7 @@ public class SuspensionService(
 
         if (user is not null)
         {
-            await emailService.SendAccountRestoredAsync(user.Email, user.FullName);
+            await emailService.SendAccountRestoredAsync(user.Email, user.Nickname);
             cacheService.Delete($"perm:{user.UserId}");
         }
 

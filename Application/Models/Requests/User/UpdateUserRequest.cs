@@ -5,9 +5,9 @@ namespace Application.Models.Requests.User;
 
 public class UpdateUserRequest
 {
-    [MaxLength(150, ErrorMessage = ValidationConstants.MAX_LENGTH)]
-    [MinLength(10, ErrorMessage = ValidationConstants.MIN_LENGTH)]
-    public string? FullName { get; set; }
+    [MaxLength(30, ErrorMessage = ValidationConstants.MAX_LENGTH)]
+    [MinLength(2, ErrorMessage = ValidationConstants.MIN_LENGTH)]
+    public string? Nickname { get; set; }
 
     [EmailAddress]
     [MaxLength(255, ErrorMessage = ValidationConstants.MAX_LENGTH)]

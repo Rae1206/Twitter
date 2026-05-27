@@ -3,7 +3,7 @@ namespace Application.Models.DTOs;
 public class UserDto
 {
     public Guid UserId { get; set; }
-    public string FullName { get; set; } = null!;
+    public string Nickname { get; set; } = null!;
     public string Email { get; set; } = null!;
     public string? Biography { get; set; }
     public string? ProfilePhotoUrl { get; set; }

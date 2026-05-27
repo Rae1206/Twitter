@@ -133,7 +133,7 @@ public class AvatarService(
     private static UserDto MapToDto(User entity) => new()
     {
         UserId = entity.UserId,
-        FullName = entity.FullName,
+        Nickname = entity.Nickname,
         Email = entity.Email,
         Biography = entity.Biography,
         ProfilePhotoUrl = entity.ProfilePhotoUrl,

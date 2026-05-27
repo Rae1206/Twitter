@@ -48,7 +48,7 @@ public class UserService(
         var entity = new User
         {
             UserId = Guid.NewGuid(),
-            FullName = model.FullName,
+            Nickname = model.Nickname,
             Email = model.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
             IsActive = true,
@@ -67,7 +67,7 @@ public class UserService(
             logger.LogInformation("Usuario creado exitosamente con ID: {UserId}", entity.UserId);
         }
 
-        await emailService.SendWelcomeEmailAsync(entity.Email, entity.FullName);
+        await emailService.SendWelcomeEmailAsync(entity.Email, entity.Nickname);
 
         return MapToDto(entity);
     }
@@ -90,7 +90,7 @@ public class UserService(
             throw new ResourceNotFoundException("usuario", userId);
         }
 
-        var normalizedFullName = NormalizeOptionalProfileField(model.FullName, nameof(model.FullName));
+        var normalizedNickname = NormalizeOptionalProfileField(model.Nickname, nameof(model.Nickname));
         var normalizedEmail = NormalizeOptionalProfileField(model.Email, nameof(model.Email));
         var normalizedBiography = NormalizeBiography(model.Biography);
 
@@ -101,9 +101,9 @@ public class UserService(
             throw new AlreadyExistsException("usuario", "email", normalizedEmail);
         }
 
-        if (normalizedFullName is not null)
+        if (normalizedNickname is not null)
         {
-            existing.FullName = normalizedFullName;
+            existing.Nickname = normalizedNickname;
         }
 
         if (normalizedEmail is not null)
@@ -126,15 +126,15 @@ public class UserService(
         return MapToDto(existing);
     }
 
-    public async Task<GenericResponse<List<UserDto>>> Get(int limit, int offset, string? fullName = null, string? email = null)
+    public async Task<GenericResponse<List<UserDto>>> Get(int limit, int offset, string? nickname = null, string? email = null)
     {
         if (logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug("Obteniendo lista de usuarios | Limit: {Limit}, Offset: {Offset}, Nombre: {FullName}, Email: {Email}",
-                limit, offset, fullName, email);
+            logger.LogDebug("Obteniendo lista de usuarios | Limit: {Limit}, Offset: {Offset}, Nombre: {Nickname}, Email: {Email}",
+                limit, offset, nickname, email);
         }
 
-        var users = await unitOfWork.Users.GetAllAsync(limit, offset, fullName, email);
+        var users = await unitOfWork.Users.GetAllAsync(limit, offset, nickname, email);
         var dtos = users.Select(MapToDto).ToList();
         return new GenericResponse<List<UserDto>> { Data = dtos };
     }
@@ -187,7 +187,7 @@ public class UserService(
             logger.LogInformation("Contraseña cambiada exitosamente para usuario con ID: {UserId}", userId);
         }
 
-        await emailService.SendPasswordChangedNotificationAsync(user.Email, user.FullName);
+        await emailService.SendPasswordChangedNotificationAsync(user.Email, user.Nickname);
     }
 
     public async Task Delete(Guid userId)
@@ -261,7 +261,7 @@ public class UserService(
     private static UserDto MapToDto(User entity) => new()
     {
         UserId = entity.UserId,
-        FullName = entity.FullName,
+        Nickname = entity.Nickname,
         Email = entity.Email,
         Biography = entity.Biography,
         ProfilePhotoUrl = entity.ProfilePhotoUrl,

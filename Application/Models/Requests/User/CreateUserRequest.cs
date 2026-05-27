@@ -6,9 +6,9 @@ namespace Application.Models.Requests.User;
 public class CreateUserRequest
 {
     [Required(ErrorMessage = ValidationConstants.REQUIRED)]
-    [MaxLength(150, ErrorMessage = ValidationConstants.MAX_LENGTH)]
-    [MinLength(10, ErrorMessage = ValidationConstants.MIN_LENGTH)]
-    public string FullName { get; set; } = null!;
+    [MaxLength(30, ErrorMessage = ValidationConstants.MAX_LENGTH)]
+    [MinLength(2, ErrorMessage = ValidationConstants.MIN_LENGTH)]
+    public string Nickname { get; set; } = null!;
 
     [Required(ErrorMessage = ValidationConstants.REQUIRED)]
     [EmailAddress]

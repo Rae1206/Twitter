@@ -15,14 +15,14 @@ public class AdminService(
     ICacheService cacheService,
     ILogger<AdminService> logger) : IAdminService
 {
-    public async Task<GenericResponse<List<UserDto>>> ListUsersAsync(int limit, int offset, string? fullName = null, string? email = null, bool? includeDeleted = null)
+    public async Task<GenericResponse<List<UserDto>>> ListUsersAsync(int limit, int offset, string? nickname = null, string? email = null, bool? includeDeleted = null)
     {
         if (logger.IsEnabled(LogLevel.Debug))
         {
             logger.LogDebug("Listando usuarios | Limit: {Limit}, Offset: {Offset}, IncludeDeleted: {IncludeDeleted}", limit, offset, includeDeleted);
         }
 
-        var users = await unitOfWork.Users.GetAllAsync(limit, offset, fullName, email);
+        var users = await unitOfWork.Users.GetAllAsync(limit, offset, nickname, email);
 
         if (includeDeleted == true)
         {
@@ -145,7 +145,7 @@ public class AdminService(
     private static UserDto MapToDto(User entity) => new()
     {
         UserId = entity.UserId,
-        FullName = entity.FullName,
+        Nickname = entity.Nickname,
         Email = entity.Email,
         IsActive = entity.IsActive,
         IsSuspended = entity.IsSuspended,

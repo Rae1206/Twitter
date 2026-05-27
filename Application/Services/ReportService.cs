@@ -127,7 +127,7 @@ public class ReportService(
     // === Admin: gestión ===
 
 
-    public async Task<ContentReport> ResolveReportAsync(Guid reportId, string resolution, Guid adminId)
+    public async Task<ContentReport> ResolveReportAsync(Guid reportId, string? resolution, Guid adminId)
     {
         var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
         if (report is null)
@@ -135,7 +135,7 @@ public class ReportService(
             throw new ResourceNotFoundException("reporte", reportId);
         }
 
-        report.Resolution = resolution;
+        report.Resolution = string.IsNullOrWhiteSpace(resolution) ? "Resuelto por el administrador" : resolution;
         report.Status = ReportConstants.STATUS_RESOLVED;
         report.ResolvedAt = DateTimeHelper.UtcNow();
         report.ResolvedByAdminId = adminId;
@@ -145,7 +145,7 @@ public class ReportService(
         return report;
     }
 
-    public async Task<ContentReport> DismissReportAsync(Guid reportId, string reason, Guid adminId)
+    public async Task<ContentReport> DismissReportAsync(Guid reportId, string? reason, Guid adminId)
     {
         var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
         if (report is null)
@@ -153,7 +153,7 @@ public class ReportService(
             throw new ResourceNotFoundException("reporte", reportId);
         }
 
-        report.Resolution = reason;
+        report.Resolution = string.IsNullOrWhiteSpace(reason) ? "Descartado por el administrador" : reason;
         report.Status = ReportConstants.STATUS_DISMISSED;
         report.ResolvedAt = DateTimeHelper.UtcNow();
         report.ResolvedByAdminId = adminId;

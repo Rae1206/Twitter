@@ -50,10 +50,10 @@ public class AdminReportController(
 
 public class ResolveReportRequest
 {
-    public string Resolution { get; set; } = null!;
+    public string? Resolution { get; set; }
 }
 
 public class DismissReportRequest
 {
-    public string Reason { get; set; } = null!;
+    public string? Reason { get; set; }
 }

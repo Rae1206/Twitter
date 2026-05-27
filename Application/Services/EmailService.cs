@@ -21,39 +21,39 @@ public class EmailService : IEmailService
         _logger = logger;
     }
 
-    public async Task SendWelcomeEmailAsync(string email, string fullName)
+    public async Task SendWelcomeEmailAsync(string email, string nickname)
     {
-        await SendTemplateEmailAsync(EmailTemplateConstants.Welcome, email, new { fullName, email });
+        await SendTemplateEmailAsync(EmailTemplateConstants.Welcome, email, new { fullName = nickname, email });
     }
 
-    public async Task SendPasswordChangedNotificationAsync(string email, string fullName)
+    public async Task SendPasswordChangedNotificationAsync(string email, string nickname)
     {
-        await SendTemplateEmailAsync(EmailTemplateConstants.PasswordChanged, email, new { fullName, email });
+        await SendTemplateEmailAsync(EmailTemplateConstants.PasswordChanged, email, new { fullName = nickname, email });
     }
 
-    public async Task SendPasswordResetEmailAsync(string email, string fullName, string otp)
+    public async Task SendPasswordResetEmailAsync(string email, string nickname, string otp)
     {
-        await SendTemplateEmailAsync(EmailTemplateConstants.PasswordReset, email, new { fullName, email, otp });
+        await SendTemplateEmailAsync(EmailTemplateConstants.PasswordReset, email, new { fullName = nickname, email, otp });
     }
 
-    public async Task SendAccountSuspendedAsync(string email, string fullName, string reason, DateTime? endsAt)
+    public async Task SendAccountSuspendedAsync(string email, string nickname, string reason, DateTime? endsAt)
     {
-        await SendTemplateEmailAsync(EmailTemplateConstants.AccountSuspended, email, new { fullName, email, reason, endsAt });
+        await SendTemplateEmailAsync(EmailTemplateConstants.AccountSuspended, email, new { fullName = nickname, email, reason, endsAt });
     }
 
-    public async Task SendAccountBannedPermanentAsync(string email, string fullName, string reason)
+    public async Task SendAccountBannedPermanentAsync(string email, string nickname, string reason)
     {
-        await SendTemplateEmailAsync(EmailTemplateConstants.AccountBannedPermanent, email, new { fullName, email, reason });
+        await SendTemplateEmailAsync(EmailTemplateConstants.AccountBannedPermanent, email, new { fullName = nickname, email, reason });
     }
 
-    public async Task SendAccountRestoredAsync(string email, string fullName)
+    public async Task SendAccountRestoredAsync(string email, string nickname)
     {
-        await SendTemplateEmailAsync(EmailTemplateConstants.AccountRestored, email, new { fullName, email });
+        await SendTemplateEmailAsync(EmailTemplateConstants.AccountRestored, email, new { fullName = nickname, email });
     }
 
-    public async Task SendPostRemovedAsync(string email, string fullName, string reason)
+    public async Task SendPostRemovedAsync(string email, string nickname, string reason)
     {
-        await SendTemplateEmailAsync(EmailTemplateConstants.PostRemoved, email, new { fullName, email, reason });
+        await SendTemplateEmailAsync(EmailTemplateConstants.PostRemoved, email, new { fullName = nickname, email, reason });
     }
 
     private async Task SendTemplateEmailAsync(string templateName, string to, object variables)
