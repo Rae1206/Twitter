@@ -50,10 +50,10 @@ try
                   .AllowAnyHeader();
         });
         
-        // Política específica para SignalR
+        // Política específica para SignalR - permite cualquier origen con credenciales
         options.AddPolicy("SignalRPolicy", policy =>
         {
-            policy.WithOrigins("http://localhost:4200", "http://localhost:5173") // Ajusta según tu frontend
+            policy.SetIsOriginAllowed(_ => true) // Permite cualquier origen
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials(); // SignalR requiere credenciales
