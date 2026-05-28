@@ -2,6 +2,7 @@ using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Constants;
+using Twitter.Domain.Interfaces;
 using WebApi.Attributes;
 using WebApi.Filters;
 
@@ -14,7 +15,8 @@ namespace WebApi.Controllers;
 public class AdminUserController(
     IAdminService adminService,
     IAuditService _auditService,
-    ICacheService _cacheService) : ApiControllerBase
+    ICacheService _cacheService,
+    IUnitOfWork unitOfWork) : ApiControllerBase
 {
     [HttpGet("list")]
     [RequirePermission(PermissionConstants.UsersView)]
@@ -22,6 +24,15 @@ public class AdminUserController(
     {
         var rsp = await adminService.ListUsersAsync(limit, offset, nickname, email, includeDeleted);
         return OkEnvelope(rsp);
+    }
+
+    [HttpGet("roles")]
+    [RequirePermission(PermissionConstants.UsersRoles)]
+    public async Task<IActionResult> ListRoles()
+    {
+        var roles = await unitOfWork.Roles.GetAllAsync(filter: r => r.IsActive);
+        var result = roles.Select(r => new { r.RoleId, r.Name }).ToList();
+        return OkEnvelope(result);
     }
 
     [HttpDelete("{id:guid}")]
