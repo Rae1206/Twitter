@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Application.Interfaces.Services;
+using Application.Models.DTOs;
 using Twitter.Domain.Interfaces;
 using Twitter.Domain.Database.SqlServer.Entities;
 using Twitter.Domain.Exceptions;
@@ -104,14 +105,16 @@ public class FollowService(
         await unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<List<User>> GetFollowers(Guid userId, int limit = 0, int offset = 0)
+    public async Task<List<UserDto>> GetFollowers(Guid userId, int limit = 0, int offset = 0)
     {
-        return await unitOfWork.Follows.GetFollowers(userId, limit, offset);
+        var users = await unitOfWork.Follows.GetFollowers(userId, limit, offset);
+        return users.Select(MapToDto).ToList();
     }
 
-    public async Task<List<User>> GetFollowing(Guid userId, int limit = 0, int offset = 0)
+    public async Task<List<UserDto>> GetFollowing(Guid userId, int limit = 0, int offset = 0)
     {
-        return await unitOfWork.Follows.GetFollowing(userId, limit, offset);
+        var users = await unitOfWork.Follows.GetFollowing(userId, limit, offset);
+        return users.Select(MapToDto).ToList();
     }
 
     public async Task<int> GetFollowersCount(Guid userId)
@@ -128,4 +131,20 @@ public class FollowService(
     {
         return await unitOfWork.Follows.IsFollowing(followerId, followingId);
     }
+
+    private static UserDto MapToDto(User user) => new()
+    {
+        UserId = user.UserId,
+        Nickname = user.Nickname,
+        Email = user.Email,
+        Biography = user.Biography,
+        ProfilePhotoUrl = user.ProfilePhotoUrl,
+        IsActive = user.IsActive,
+        IsSuspended = user.IsSuspended,
+        IsShadowBanned = user.IsShadowBanned,
+        DeletedAt = user.DeletedAt,
+        FollowersCount = user.FollowersCount,
+        FollowingCount = user.FollowingCount,
+        CreatedAt = user.CreatedAt
+    };
 }
