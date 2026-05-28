@@ -1,7 +1,9 @@
 using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using WebApi.Attributes;
+using WebApi.Hubs;
 
 namespace WebApi.Controllers;
 
@@ -9,7 +11,9 @@ namespace WebApi.Controllers;
 [ApiController]
 [Authorize]
 [RequireNotSuspended]
-public class MessageController(IMessageService messageService) : ApiControllerBase
+public class MessageController(
+    IMessageService messageService,
+    IHubContext<MessageHub> hubContext) : ApiControllerBase
 {
     /// <summary>
     /// Enviar un mensaje directo
@@ -19,6 +23,12 @@ public class MessageController(IMessageService messageService) : ApiControllerBa
     {
         var currentUserId = GetRequiredCurrentUserId();
         var message = await messageService.SendMessage(currentUserId, request.ReceiverId, request.Content);
+        
+        // Enviar notificación en tiempo real al receptor a través de SignalR
+        await hubContext.Clients
+            .Group($"user-{request.ReceiverId}")
+            .SendAsync("ReceiveMessage", message);
+        
         return CreatedEnvelope(nameof(GetConversation), new { otherUserId = request.ReceiverId }, message, "Mensaje enviado correctamente");
     }
 
