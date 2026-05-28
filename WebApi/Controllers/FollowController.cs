@@ -5,7 +5,7 @@ using WebApi.Attributes;
 
 namespace WebApi.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/follow")]
 [ApiController]
 [Authorize]
 [RequireNotSuspended]
@@ -15,7 +15,7 @@ public class FollowController(IFollowService followService) : ApiControllerBase
     /// Seguir a un usuario
     /// </summary>
     [HttpPost("{userId:guid}/follow")]
-    public async Task<IActionResult> FollowUser(Guid userId)
+    public async Task<IActionResult> Follow(Guid userId)
     {
         var currentUserId = GetRequiredCurrentUserId();
         await followService.FollowUser(currentUserId, userId);
@@ -26,7 +26,7 @@ public class FollowController(IFollowService followService) : ApiControllerBase
     /// Dejar de seguir a un usuario
     /// </summary>
     [HttpDelete("{userId:guid}/unfollow")]
-    public async Task<IActionResult> UnfollowUser(Guid userId)
+    public async Task<IActionResult> Unfollow(Guid userId)
     {
         var currentUserId = GetRequiredCurrentUserId();
         await followService.UnfollowUser(currentUserId, userId);
@@ -49,7 +49,7 @@ public class FollowController(IFollowService followService) : ApiControllerBase
     /// </summary>
     [AllowAnonymous]
     [HttpGet("{userId:guid}/followers")]
-    public async Task<IActionResult> GetFollowers(Guid userId, [FromQuery] int limit = 20, [FromQuery] int offset = 0)
+    public async Task<IActionResult> GetFollowers(Guid userId, [FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
         var followers = await followService.GetFollowers(userId, limit, offset);
         return OkEnvelope(followers);
@@ -60,7 +60,7 @@ public class FollowController(IFollowService followService) : ApiControllerBase
     /// </summary>
     [AllowAnonymous]
     [HttpGet("{userId:guid}/following")]
-    public async Task<IActionResult> GetFollowing(Guid userId, [FromQuery] int limit = 20, [FromQuery] int offset = 0)
+    public async Task<IActionResult> GetFollowing(Guid userId, [FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
         var following = await followService.GetFollowing(userId, limit, offset);
         return OkEnvelope(following);
@@ -74,7 +74,7 @@ public class FollowController(IFollowService followService) : ApiControllerBase
     public async Task<IActionResult> GetFollowersCount(Guid userId)
     {
         var count = await followService.GetFollowersCount(userId);
-        return OkEnvelope(new { count });
+        return OkEnvelope(count);
     }
 
     /// <summary>
@@ -85,6 +85,6 @@ public class FollowController(IFollowService followService) : ApiControllerBase
     public async Task<IActionResult> GetFollowingCount(Guid userId)
     {
         var count = await followService.GetFollowingCount(userId);
-        return OkEnvelope(new { count });
+        return OkEnvelope(count);
     }
 }

@@ -127,6 +127,12 @@ public class AdminService(
             throw new ResourceNotFoundException("rol", roleId);
         }
 
+        var alreadyHasRole = user.UserRoles?.Any(ur => ur.RoleId == roleId) ?? false;
+        if (alreadyHasRole)
+        {
+            throw new BadRequestException($"El usuario ya tiene el rol '{role.Name}' asignado.");
+        }
+
         var userRole = new UserRole
         {
             UserRoleId = Guid.NewGuid(),

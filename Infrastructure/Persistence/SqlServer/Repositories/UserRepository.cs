@@ -16,9 +16,18 @@ public class UserRepository : GenericRepository<User, Guid>, IUserRepository
     {
     }
 
+    public override async Task<User?> GetByIdAsync(Guid id)
+    {
+        return await _context.Users
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.UserId == id);
+    }
+
     public async Task<List<User>> GetAllAsync(int limit, int offset, string? nickname = null, string? email = null)
     {
-        var query = _context.Users.AsQueryable();
+        var query = _context.Users
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(nickname))
             query = query.Where(u => u.Nickname.Contains(nickname));

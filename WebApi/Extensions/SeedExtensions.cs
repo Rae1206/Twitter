@@ -58,7 +58,15 @@ public static class SeedExtensions
         else
         {
             adminUser = existing;
-            logger.LogInformation("Usuario administrador ya existía, se valida su rol");
+            // Reset to known-good state on every startup (dev/test seeding).
+            adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(DefaultUserConstants.AdminPassword);
+            adminUser.IsActive = true;
+            adminUser.IsSuspended = false;
+            adminUser.IsShadowBanned = false;
+            adminUser.DeletedAt = null;
+            adminUser.DeletedByAdminId = null;
+            unitOfWork.Update(adminUser);
+            logger.LogInformation("Usuario administrador ya existía, se restauró el estado por defecto");
         }
 
         // Asegurar que el admin tiene el rol SuperAdmin (idempotente).
