@@ -1,3 +1,5 @@
+using Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace WebApi.Hubs;
@@ -5,8 +7,16 @@ namespace WebApi.Hubs;
 /// <summary>
 /// Hub de SignalR para mensajería en tiempo real.
 /// </summary>
+[Authorize]
 public class MessageHub : Hub
 {
+    private readonly IUserService _userService;
+
+    public MessageHub(IUserService userService)
+    {
+        _userService = userService;
+    }
+
     // Diccionario para rastrear usuarios conectados
     private static readonly Dictionary<string, HashSet<string>> _userConnections = new();
 
@@ -28,8 +38,16 @@ public class MessageHub : Hub
                 _userConnections[userId].Add(Context.ConnectionId);
             }
 
+            // Obtener información del usuario
+            var user = await _userService.Get(Guid.Parse(userId));
+            var userInfo = new
+            {
+                UserId = userId,
+                Nickname = user?.Nickname ?? "Usuario"
+            };
+
             // Notificar a todos que el usuario está en línea
-            await Clients.Others.SendAsync("UserOnline", userId);
+            await Clients.Others.SendAsync("UserOnline", userInfo);
         }
         await base.OnConnectedAsync();
     }

@@ -3,6 +3,7 @@ using Serilog;
 using WebApi.Extensions;
 using Microsoft.AspNetCore.HttpOverrides;
 using WebApi.Common;
+using Microsoft.AspNetCore.SignalR;
 
 // Logger de arranque para errores durante el inicio.
 // Solo escribe a consola hasta que UseSerilog lo reemplaza con la configuración completa.
@@ -21,6 +22,7 @@ try
 
 // Configuración infraestructura
     builder.Services.AddSignalR();
+    builder.Services.AddSingleton<IUserIdProvider, WebApi.Hubs.UserIdProvider>();
     builder.ConfigureSerilog();
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
