@@ -176,6 +176,21 @@ public static class ServiceCollectionExtension
 
             options.Events = new JwtBearerEvents
             {
+                // SignalR: cuando el transporte es WebSockets (o SSE), el browser
+                // no puede enviar el header Authorization. El token llega en el
+                // query string ?access_token=... Hay que copiarlo al contexto
+                // ANTES de la validación, solo para paths del hub.
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) &&
+                        path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                },
                 OnChallenge = async context =>
                 {
                     context.HandleResponse();
