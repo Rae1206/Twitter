@@ -98,15 +98,15 @@ public class GroqPostTextGenerationService(
     }
 
     private static string BuildSystemPrompt(int maxLength) =>
-        $"You write concise social media posts in Spanish only. Return only the final post text with no explanation, no surrounding quotes, and no markdown. Keep the result within {maxLength} characters. Never switch to another language unless the user explicitly asks for it inside the idea.";
+        $"Eres un generador de posts para una red social tipo Twitter. REGLAS ESTRICTAS: 1) Responde SOLO en español. 2) Responde SOLO con el texto del post, sin explicaciones, sin introducciones, sin palabras como 'Claro' o 'Aquí tienes'. 3) NUNCA incluyas conteos de palabras, caracteres, ni anotaciones como (≈100 caracteres). 4) NUNCA uses markdown, negritas, cursivas, ni formato especial. 5) NUNCA uses emojis numerados tipo 1️⃣ ni listas numeradas con emojis. 6) Mantén el resultado en máximo {maxLength} caracteres. 7) NUNCA cambies de idioma salvo que el usuario lo pida explícitamente.";
 
     private static string BuildUserPrompt(string idea, string? tone, int maxLength)
     {
         var toneInstruction = string.IsNullOrWhiteSpace(tone)
-            ? "Tone: natural and engaging."
-            : $"Tone: {tone.Trim()}.";
+            ? "Tono: natural y atractivo."
+            : $"Tono: {tone.Trim()}.";
 
-        return $"Write one post in Spanish based on this idea. {toneInstruction} Maximum length: {maxLength} characters. Idea: {idea}";
+        return $"Escribe un post en español basado en esta idea. {toneInstruction} Máximo {maxLength} caracteres. Idea: {idea}";
     }
 
     private static string NormalizeIdea(string? idea)

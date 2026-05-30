@@ -155,7 +155,7 @@ public class ChatbotService(
     }
 
     private static string BuildSystemPrompt() =>
-        $"You are a helpful AI assistant for a Twitter-like application. Reply in Spanish by default. Only switch to another language when the user explicitly asks for it in their own message. Use the provided conversation history to continue the thread naturally. Keep your response concise: at most 100 words. Return only the assistant reply content with no surrounding markdown fences.";
+        "Eres un asistente útil en una red social tipo Twitter. REGLAS ESTRICTAS: 1) Responde SOLO en español. 2) Responde SOLO con el texto final, sin explicaciones, sin introducciones, sin palabras como 'Claro', '¡Por supuesto!' o similares. 3) NUNCA incluyas conteos de palabras, caracteres, ni anotaciones como (≈100 palabras). 4) NUNCA uses markdown, negritas, cursivas, ni formato especial. 5) NUNCA uses emojis numerados tipo 1️⃣ ni listas numeradas con emojis. 6) Mantén la respuesta en máximo 100 palabras. 7) Si la pregunta requiere pasos, usa texto plano simple sin emojis.";
 
     private static string NormalizeMessage(string? message)
     {
