@@ -40,7 +40,7 @@ public class ReportService(
 
     // === Público: usuarios normales ===
 
-    public async Task<ContentReport> CreateReportAsync(Guid reporterUserId, string entityType, Guid entityId, string category, string? description)
+    public async Task<ReportDto> CreateReportAsync(Guid reporterUserId, string entityType, Guid entityId, string category, string? description)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
@@ -110,7 +110,7 @@ public class ReportService(
             }
         }
 
-        return report;
+        return ToDto(report);
     }
 
     public async Task<bool> HasActiveReportAsync(Guid reporterUserId, string entityType, Guid entityId)
@@ -127,7 +127,7 @@ public class ReportService(
     // === Admin: gestión ===
 
 
-    public async Task<ContentReport> ResolveReportAsync(Guid reportId, string? resolution, Guid adminId)
+    public async Task<ReportDto> ResolveReportAsync(Guid reportId, string? resolution, Guid adminId)
     {
         var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
         if (report is null)
@@ -142,10 +142,10 @@ public class ReportService(
         unitOfWork.Update(report);
         await unitOfWork.SaveChangesAsync();
 
-        return report;
+        return ToDto(report);
     }
 
-    public async Task<ContentReport> DismissReportAsync(Guid reportId, string? reason, Guid adminId)
+    public async Task<ReportDto> DismissReportAsync(Guid reportId, string? reason, Guid adminId)
     {
         var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
         if (report is null)
@@ -160,7 +160,7 @@ public class ReportService(
         unitOfWork.Update(report);
         await unitOfWork.SaveChangesAsync();
 
-        return report;
+        return ToDto(report);
     }
 
     public async Task<GenericResponse<List<AdminReportDto>>> GetReportsAsync(string? status = null, int limit = 0, int offset = 0)
@@ -252,4 +252,20 @@ public class ReportService(
 
         return new GenericResponse<List<AdminReportDto>> { Data = dtos };
     }
+
+    private static ReportDto ToDto(ContentReport report) => new()
+    {
+        ReportId = report.ReportId,
+        ReporterUserId = report.ReporterUserId,
+        EntityType = report.EntityType,
+        EntityId = report.EntityId,
+        Category = report.Category,
+        Description = report.Description,
+        Status = report.Status,
+        Priority = report.Priority,
+        Resolution = report.Resolution,
+        ResolvedAt = report.ResolvedAt,
+        ResolvedByAdminId = report.ResolvedByAdminId,
+        CreatedAt = report.CreatedAt
+    };
 }
