@@ -55,14 +55,15 @@ public class ChatbotService(
 
         if (!response.IsSuccessStatusCode)
         {
+            var errorDetail = payload.Length > 500 ? payload[..500] : payload;
             logger.LogWarning(
                 "Groq devolvió error {StatusCode} para chatbot del usuario {UserId}. Respuesta: {Response}",
                 (int)response.StatusCode,
                 currentUserId,
-                payload);
+                errorDetail);
 
             throw new HttpRequestException(
-                "No fue posible generar la respuesta del chatbot en este momento",
+                $"No fue posible generar la respuesta del chatbot. Groq respondió con status {(int)response.StatusCode}: {errorDetail}",
                 null,
                 response.StatusCode);
         }
