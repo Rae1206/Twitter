@@ -79,6 +79,7 @@ public class GroqPostTextGenerationService(
         request.Content = JsonContent.Create(new GroqChatCompletionRequest
         {
             Model = model,
+            MaxTokens = 100,
             Messages =
             [
                 new GroqMessage
@@ -162,7 +163,10 @@ public class GroqPostTextGenerationService(
             return content;
         }
 
-        return content[..maxLength].TrimEnd();
+        var lastSentenceEnd = content[..maxLength].LastIndexOfAny(['.', '!', '?', '\n']);
+        return lastSentenceEnd > maxLength * 0.5
+            ? content[..(lastSentenceEnd + 1)].TrimEnd()
+            : content[..maxLength].TrimEnd();
     }
 
     private sealed class GroqChatCompletionRequest
@@ -172,6 +176,9 @@ public class GroqPostTextGenerationService(
 
         [JsonPropertyName("messages")]
         public List<GroqMessage> Messages { get; set; } = [];
+
+        [JsonPropertyName("max_tokens")]
+        public int MaxTokens { get; set; }
     }
 
     private sealed class GroqMessage

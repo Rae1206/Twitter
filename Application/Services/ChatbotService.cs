@@ -148,7 +148,8 @@ public class ChatbotService(
         request.Content = JsonContent.Create(new GroqChatCompletionRequest
         {
             Model = model,
-            Messages = messages
+            Messages = messages,
+            MaxTokens = ChatbotConstants.MaxResponseTokens
         });
 
         return request;
@@ -222,7 +223,17 @@ public class ChatbotService(
 
         return content.Length <= ChatbotConstants.MaxAssistantResponseChars
             ? content
-            : content[..ChatbotConstants.MaxAssistantResponseChars].TrimEnd();
+            : TruncateAtSentenceBoundary(content, ChatbotConstants.MaxAssistantResponseChars);
+    }
+
+    private static string TruncateAtSentenceBoundary(string text, int maxLength)
+    {
+        var substring = text[..maxLength];
+        var lastSentenceEnd = substring.LastIndexOfAny(['.', '!', '?', '\n']);
+
+        return lastSentenceEnd > maxLength * 0.5
+            ? substring[..(lastSentenceEnd + 1)].TrimEnd()
+            : substring.TrimEnd();
     }
 
     private static ChatbotMessageDto MapToDto(ChatbotMessage message)
@@ -245,6 +256,9 @@ public class ChatbotService(
 
         [JsonPropertyName("messages")]
         public List<GroqMessage> Messages { get; set; } = [];
+
+        [JsonPropertyName("max_tokens")]
+        public int MaxTokens { get; set; }
     }
 
     private sealed class GroqMessage
