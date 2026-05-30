@@ -12,6 +12,7 @@ namespace WebApi.Controllers;
 [Authorize]
 public class PostController(
     IPostService postService,
+    IPostTextGenerationService postTextGenerationService,
     ILikeService likeService,
     ICommentService commentService,
     IRetweetService retweetService) : ApiControllerBase
@@ -22,6 +23,14 @@ public class PostController(
         var currentUserId = GetRequiredCurrentUserId();
         var post = await postService.Create(currentUserId, model);
         return CreatedEnvelope(nameof(GetPostById), new { id = post.PostId }, post);
+    }
+
+    [HttpPost("generate-text")]
+    public async Task<IActionResult> GenerateText([FromBody] GeneratePostTextRequest model)
+    {
+        var currentUserId = GetRequiredCurrentUserId();
+        var generatedPost = await postTextGenerationService.GenerateAsync(currentUserId, model, HttpContext.RequestAborted);
+        return OkEnvelope(generatedPost, "Texto sugerido generado correctamente");
     }
 
     [AllowAnonymous]

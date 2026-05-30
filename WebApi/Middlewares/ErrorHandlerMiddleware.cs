@@ -52,6 +52,8 @@ public class ErrorHandlerMiddleware
             ConflictException ex => Build(StatusCodes.Status409Conflict, ex.Message),
             AlreadyExistsException ex => Build(StatusCodes.Status409Conflict, ex.Message),
             ForbiddenException ex => Build(StatusCodes.Status403Forbidden, ex.Message),
+            HttpRequestException ex => Build(StatusCodes.Status502BadGateway, ex.Message),
+            InvalidOperationException ex => Build(StatusCodes.Status500InternalServerError, ex.Message),
             KeyNotFoundException => Build(StatusCodes.Status404NotFound, ErrorConstants.RESOURCE_NOT_FOUND),
             ArgumentException => Build(StatusCodes.Status400BadRequest, exception.Message),
             UnauthorizedAccessException ex => Build(StatusCodes.Status401Unauthorized, ex.Message),

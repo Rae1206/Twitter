@@ -19,6 +19,11 @@ public static class ConfigurationConstants
     // === Auth - Refresh Token ===
     public const string AUTH_REFRESH_TOKEN_EXPIRATION_IN_DAYS = "Auth:RefreshToken:ExpirationInDays";
 
+    // === Groq AI ===
+    public const string GROQ_BASE_URL = "Groq:BaseUrl";
+    public const string GROQ_API_KEY = "Groq:ApiKey";
+    public const string GROQ_MODEL = "Groq:Model";
+
     // === SMTP ===
     public const string SMTP_HOST = "SMTP:Host";
     public const string SMTP_PORT = "SMTP:Port";

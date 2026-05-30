@@ -16,6 +16,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Net.Http.Headers;
 using Shared;
 using Shared.Constants;
 using WebApi.Common;
@@ -82,6 +83,13 @@ public static class ServiceCollectionExtension
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPostService, PostService>();
+        services.AddHttpClient<IPostTextGenerationService, GroqPostTextGenerationService>((serviceProvider, client) =>
+        {
+            var groqBaseUrl = configuration[ConfigurationConstants.GROQ_BASE_URL] ?? "https://api.groq.com/openai/v1/";
+            client.BaseAddress = new Uri(groqBaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        });
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<ISuspensionService, SuspensionService>();
         services.AddScoped<IReportService, ReportService>();
