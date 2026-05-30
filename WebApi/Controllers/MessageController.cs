@@ -14,22 +14,6 @@ namespace WebApi.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-using Application.Interfaces.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using WebApi.Attributes;
-using WebApi.Hubs;
-
-namespace WebApi.Controllers;
-
-/// <summary>
-/// Controlador para gestionar los mensajes directos (DM) entre usuarios.
-/// </summary>
-[Route("api/[controller]")]
-[ApiController]
-[Authorize]
 [RequireNotSuspended]
 [Tags("Mensajes Directos")]
 public class MessageController(

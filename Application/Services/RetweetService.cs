@@ -12,11 +12,23 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.Services;
 
+/// <summary>
+/// Servicio de lógica de negocio para gestionar los retweets (republicaciones) de los usuarios.
+/// </summary>
 public class RetweetService(
     IUnitOfWork unitOfWork,
     IPostService postService,
     ILogger<RetweetService> logger) : IRetweetService
 {
+    /// <summary>
+    /// Crea un retweet de una publicación existente.
+    /// Resuelve de forma iterativa el post original si se trata de un retweet puro para evitar anidación infinita,
+    /// previene retweets puros duplicados y registra el nuevo post en base de datos.
+    /// </summary>
+    /// <param name="postId">Identificador único de la publicación a retuitear.</param>
+    /// <param name="userId">Identificador único del usuario ejecutor.</param>
+    /// <param name="model">Modelo de solicitud con comentarios opcionales para retweets con cita.</param>
+    /// <returns>Los detalles de la publicación creada en forma de DTO.</returns>
     public async Task<PostDto> CreateRetweet(Guid postId, Guid userId, CreateRetweetRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))

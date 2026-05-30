@@ -13,7 +13,7 @@ using BCrypt.Net;
 namespace Application.Services;
 
 /// <summary>
-/// Servicio para la gestión de usuarios.
+/// Servicio encargado de la gestión integral de cuentas de usuarios, cubriendo la creación, actualización del perfil, consulta, cambio de contraseñas y eliminación/restauración lógica.
 /// </summary>
 public class UserService(
     IUnitOfWork unitOfWork,
@@ -21,6 +21,13 @@ public class UserService(
     ILogger<UserService> logger) : IUserService
 {
 
+    /// <summary>
+    /// Crea y registra de forma asíncrona un nuevo usuario en el sistema.
+    /// Valida que el correo no esté registrado previamente, genera el hash seguro para la contraseña con BCrypt,
+    /// le asigna el rol inicial predeterminado de usuario y envía el correo de bienvenida correspondiente.
+    /// </summary>
+    /// <param name="model">Modelo conteniendo el nickname, correo y contraseña del nuevo usuario.</param>
+    /// <returns>La representación DTO <see cref="UserDto"/> del usuario creado.</returns>
     public async Task<UserDto> Create(CreateUserRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -72,6 +79,13 @@ public class UserService(
         return MapToDto(entity);
     }
 
+    /// <summary>
+    /// Actualiza de forma asíncrona la información básica de perfil (nickname, correo y biografía) del usuario actual.
+    /// Valida que el nuevo correo electrónico no se encuentre en uso por otra cuenta activa.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario a actualizar.</param>
+    /// <param name="model">Modelo de solicitud con los campos opcionales actualizados del perfil.</param>
+    /// <returns>La representación DTO <see cref="UserDto"/> actualizada del usuario.</returns>
     public async Task<UserDto> UpdateProfile(Guid userId, UpdateUserRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -126,6 +140,14 @@ public class UserService(
         return MapToDto(existing);
     }
 
+    /// <summary>
+    /// Obtiene de forma asíncrona un listado paginado y filtrado de usuarios registrados en el sistema.
+    /// </summary>
+    /// <param name="limit">Cantidad máxima de usuarios a recuperar.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <param name="nickname">Filtro opcional para buscar por nickname (nombre de usuario).</param>
+    /// <param name="email">Filtro opcional para buscar por correo electrónico.</param>
+    /// <returns>Una respuesta genérica que contiene el listado de <see cref="UserDto"/> resultantes.</returns>
     public async Task<GenericResponse<List<UserDto>>> Get(int limit, int offset, string? nickname = null, string? email = null)
     {
         if (logger.IsEnabled(LogLevel.Debug))
@@ -139,6 +161,12 @@ public class UserService(
         return new GenericResponse<List<UserDto>> { Data = dtos };
     }
 
+    /// <summary>
+    /// Obtiene de forma asíncrona los detalles de un usuario individual por su identificador único.
+    /// Lanza una excepción si el usuario no existe.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario a consultar.</param>
+    /// <returns>La representación DTO <see cref="UserDto"/> del usuario.</returns>
     public async Task<UserDto> Get(Guid userId)
     {
         if (logger.IsEnabled(LogLevel.Debug))
@@ -160,6 +188,12 @@ public class UserService(
         return MapToDto(user);
     }
 
+    /// <summary>
+    /// Modifica de forma asíncrona la contraseña del usuario actual.
+    /// Genera el nuevo hash criptográfico BCrypt y despacha una notificación por correo informando sobre el cambio de seguridad.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario.</param>
+    /// <param name="model">Modelo conteniendo la nueva contraseña solicitada.</param>
     public async Task ChangePassword(Guid userId, ChangePasswordUserRequest model)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -190,6 +224,10 @@ public class UserService(
         await emailService.SendPasswordChangedNotificationAsync(user.Email, user.Nickname);
     }
 
+    /// <summary>
+    /// Realiza de forma asíncrona un Soft-Delete (eliminación lógica) del usuario estableciendo el campo DeletedAt.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario a desactivar.</param>
     public async Task Delete(Guid userId)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -218,6 +256,10 @@ public class UserService(
         }
     }
 
+    /// <summary>
+    /// Restaura de forma asíncrona la cuenta de un usuario previamente desactivado lógicamente (Soft-Delete) limpiando la fecha de eliminación.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario a restaurar.</param>
     public async Task Restore(Guid userId)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -247,6 +289,11 @@ public class UserService(
         }
     }
 
+    /// <summary>
+    /// Vincula de forma privada un rol al usuario creando el registro correspondiente en la entidad UserRole.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario.</param>
+    /// <param name="roleId">Identificador único del rol.</param>
     private void AssignRoleToUser(Guid userId, Guid roleId)
     {
         var userRole = new UserRole
@@ -258,6 +305,11 @@ public class UserService(
         unitOfWork.Create(userRole);
     }
 
+    /// <summary>
+    /// Método privado estático para mapear una entidad de base de datos <see cref="User"/> a su DTO de salida <see cref="UserDto"/> cargando su conjunto de roles.
+    /// </summary>
+    /// <param name="entity">Entidad de usuario a mapear.</param>
+    /// <returns>El DTO <see cref="UserDto"/> resultante.</returns>
     private static UserDto MapToDto(User entity) => new()
     {
         UserId = entity.UserId,
@@ -274,6 +326,12 @@ public class UserService(
         Roles = entity.UserRoles?.Select(ur => ur.Role?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>()
     };
 
+    /// <summary>
+    /// Limpia y normaliza de forma estática campos opcionales del perfil del usuario, arrojando excepciones si están vacíos.
+    /// </summary>
+    /// <param name="value">Valor del campo.</param>
+    /// <param name="fieldName">Nombre del campo para efectos de error.</param>
+    /// <returns>El valor recortado y normalizado, o null si era originalmente nulo.</returns>
     private static string? NormalizeOptionalProfileField(string? value, string fieldName)
     {
         if (value is null)
@@ -291,6 +349,11 @@ public class UserService(
         return normalizedValue;
     }
 
+    /// <summary>
+    /// Limpia y normaliza el campo de biografía opcional del usuario.
+    /// </summary>
+    /// <param name="biography">Biografía del usuario en crudo.</param>
+    /// <returns>El string normalizado o null si quedó vacío.</returns>
     private static string? NormalizeBiography(string? biography)
     {
         if (biography is null)
@@ -301,5 +364,4 @@ public class UserService(
         var normalizedBiography = biography.Trim();
         return normalizedBiography.Length == 0 ? null : normalizedBiography;
     }
-
 }

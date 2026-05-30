@@ -7,6 +7,9 @@ using Shared.Helpers;
 
 namespace Application.Services;
 
+/// <summary>
+/// Servicio de lógica de negocio para calcular, recuperar y gestionar estadísticas del panel (dashboard) administrativo.
+/// </summary>
 public class DashboardService(
     IUnitOfWork unitOfWork,
     ICacheService cacheService,
@@ -15,6 +18,11 @@ public class DashboardService(
     private static readonly string CacheKey = "admin:dashboard:stats";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
 
+    /// <summary>
+    /// Recupera las estadísticas generales del sistema almacenadas en base de datos.
+    /// Utiliza caché en memoria para optimizar lecturas sucesivas.
+    /// </summary>
+    /// <returns>Un sobre genérico con un diccionario que asocia la clave de métrica con su valor numérico.</returns>
     public async Task<GenericResponse<Dictionary<string, decimal>>> GetStatsAsync()
     {
         var cached = cacheService.Get<Dictionary<string, decimal>>(CacheKey);
@@ -31,6 +39,11 @@ public class DashboardService(
         return new GenericResponse<Dictionary<string, decimal>> { Data = dict };
     }
 
+    /// <summary>
+    /// Fuerza el recalculo manual de todas las estadísticas de la plataforma
+    /// (usuarios, publicaciones, reportes, etc.) y actualiza los registros en base de datos e invalida la caché.
+    /// </summary>
+    /// <returns>Una tarea asíncrona que representa el proceso de recalculo.</returns>
     public async Task RecalculateStatsAsync()
     {
         if (logger.IsEnabled(LogLevel.Information))

@@ -9,6 +9,9 @@ using Twitter.Domain.Database.SqlServer.Entities;
 
 namespace Application.Services;
 
+/// <summary>
+/// Servicio de lógica de negocio para gestionar el bloqueo, suspensión y restauración de cuentas de usuario.
+/// </summary>
 public class SuspensionService(
     IUnitOfWork unitOfWork,
     IEmailService emailService,
@@ -16,6 +19,15 @@ public class SuspensionService(
     ICacheService cacheService,
     ILogger<SuspensionService> logger) : ISuspensionService
 {
+    /// <summary>
+    /// Suspende la cuenta de un usuario de forma temporal o permanente, registra la auditoría, limpia su caché de permisos y le envía una notificación por correo electrónico.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario a suspender.</param>
+    /// <param name="adminId">Identificador único del administrador que ejecuta la suspensión.</param>
+    /// <param name="suspensionType">Tipo de suspensión ("Temporary" o "Permanent").</param>
+    /// <param name="reason">Razón o motivo detallado de la sanción.</param>
+    /// <param name="endsAt">Fecha y hora (UTC) de finalización de la suspensión si es temporal; null si es indefinida.</param>
+    /// <returns>Los detalles del registro de suspensión creado en forma de DTO.</returns>
     public async Task<SuspensionDto> SuspendAsync(Guid userId, Guid adminId, string suspensionType, string reason, DateTime? endsAt = null)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -64,6 +76,13 @@ public class SuspensionService(
         return ToDto(suspension);
     }
 
+    /// <summary>
+    /// Levanta o cancela una suspensión activa sobre un usuario antes de su fecha programada de término.
+    /// Invalida las cachés correspondientes y envía un correo informando la restauración de la cuenta.
+    /// </summary>
+    /// <param name="suspensionId">Identificador único de la suspensión a levantar.</param>
+    /// <param name="liftedByUserId">Identificador único del administrador que levanta la sanción.</param>
+    /// <returns>Los detalles de la suspensión levantada.</returns>
     public async Task<SuspensionDto> LiftSuspensionAsync(Guid suspensionId, Guid liftedByUserId)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -101,12 +120,24 @@ public class SuspensionService(
         return ToDto(suspension);
     }
 
+    /// <summary>
+    /// Obtiene de forma paginada el historial completo de suspensiones registradas para un usuario específico.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario.</param>
+    /// <param name="limit">Cantidad máxima de registros a recuperar.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <returns>Un sobre genérico que envuelve la lista de suspensiones encontradas.</returns>
     public async Task<GenericResponse<List<SuspensionDto>>> GetSuspensionHistoryAsync(Guid userId, int limit = 0, int offset = 0)
     {
         var query = await unitOfWork.UserSuspensions.GetAllAsync(limit, offset, s => s.UserId == userId);
         return new GenericResponse<List<SuspensionDto>> { Data = query.Select(ToDto).ToList() };
     }
 
+    /// <summary>
+    /// Convierte o mapea de forma interna una entidad de base de datos UserSuspension a su representación de DTO.
+    /// </summary>
+    /// <param name="suspension">La entidad UserSuspension a mapear.</param>
+    /// <returns>El DTO de suspensión correspondiente.</returns>
     private static SuspensionDto ToDto(UserSuspension suspension) => new()
     {
         SuspensionId = suspension.SuspensionId,

@@ -12,11 +12,20 @@ using Twitter.Domain.Interfaces.Services;
 
 namespace Application.Services;
 
+/// <summary>
+/// Servicio de lógica de negocio encargado de procesar la subida, obtención, eliminación y limpieza de archivos multimedia.
+/// </summary>
 public class MediaService(
     IUnitOfWork unitOfWork,
     IMediaStorageService storageService,
     ILogger<MediaService> logger) : IMediaService
 {
+    /// <summary>
+    /// Procesa la subida física de un archivo multimedia, determina su tipo, lo valida y registra en base de datos.
+    /// </summary>
+    /// <param name="request">Los datos de transferencia del archivo y su flujo de datos.</param>
+    /// <param name="userId">Identificador único del usuario que sube el archivo.</param>
+    /// <returns>Los metadatos del archivo subido en forma de DTO.</returns>
     public async Task<MediaUploadDto> UploadAsync(UploadMediaRequest request, Guid userId)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -61,16 +70,32 @@ public class MediaService(
         };
     }
 
+    /// <summary>
+    /// Obtiene una entidad multimedia por su identificador único.
+    /// </summary>
+    /// <param name="mediaId">Identificador único del archivo multimedia.</param>
+    /// <returns>La entidad de base de datos del archivo multimedia o null.</returns>
     public async Task<PostMedia?> GetByIdAsync(Guid mediaId)
     {
         return await unitOfWork.PostMedias.GetByIdAsync(mediaId);
     }
 
+    /// <summary>
+    /// Obtiene todos los archivos multimedia asociados a una publicación específica.
+    /// </summary>
+    /// <param name="postId">Identificador único de la publicación.</param>
+    /// <returns>La lista de archivos multimedia de la publicación.</returns>
     public async Task<List<PostMedia>> GetByPostIdAsync(Guid postId)
     {
         return await unitOfWork.PostMedias.GetByPostIdAsync(postId);
     }
 
+    /// <summary>
+    /// Elimina un archivo multimedia de forma física en el disco/nube y elimina su registro en base de datos.
+    /// </summary>
+    /// <param name="mediaId">Identificador único del archivo multimedia a eliminar.</param>
+    /// <param name="userId">Identificador del usuario que solicita la eliminación para comprobar permisos.</param>
+    /// <returns>Una tarea asíncrona que representa el proceso.</returns>
     public async Task DeleteAsync(Guid mediaId, Guid userId)
     {
         var media = await unitOfWork.PostMedias.GetByIdAsync(mediaId);
@@ -94,6 +119,11 @@ public class MediaService(
         }
     }
 
+    /// <summary>
+    /// Identifica y elimina del sistema de archivos y base de datos aquellos archivos multimedia huérfanos con una antigüedad determinada.
+    /// </summary>
+    /// <param name="maxAge">Antigüedad máxima que determina si un archivo huérfano debe ser limpiado.</param>
+    /// <returns>Una tarea asíncrona que representa el proceso.</returns>
     public async Task CleanupOrphansAsync(TimeSpan maxAge)
     {
         var cutoff = DateTime.UtcNow.Subtract(maxAge);
@@ -120,6 +150,12 @@ public class MediaService(
         }
     }
 
+    /// <summary>
+    /// Determina el tipo de medio (MediaType: Image, Video, Gif, Audio) a partir del nombre y tipo MIME provistos.
+    /// </summary>
+    /// <param name="fileName">Nombre del archivo físico.</param>
+    /// <param name="contentType">Tipo MIME o content-type provisto.</param>
+    /// <returns>El tipo de medio identificado.</returns>
     private static MediaType DetermineMediaType(string fileName, string contentType)
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
@@ -140,6 +176,11 @@ public class MediaService(
         throw new MediaValidationException($"Tipo de archivo no soportado: {ext}");
     }
 
+    /// <summary>
+    /// Valida que el archivo cumpla con las extensiones, tipos MIME y límites de tamaño según el tipo de medio determinado.
+    /// </summary>
+    /// <param name="request">Los datos de la solicitud de subida.</param>
+    /// <param name="mediaType">Tipo de medio determinado para el archivo.</param>
     private static void ValidateFile(UploadMediaRequest request, MediaType mediaType)
     {
         var ext = Path.GetExtension(request.FileName).ToLowerInvariant();
@@ -191,6 +232,11 @@ public class MediaService(
         }
     }
 
+    /// <summary>
+    /// Normaliza el tipo MIME eliminando cualquier parámetro adicional como codificaciones o códecs de audio/video.
+    /// </summary>
+    /// <param name="contentType">Tipo de contenido original.</param>
+    /// <returns>El tipo MIME normalizado sin parámetros.</returns>
     private static string NormalizeMimeType(string contentType)
     {
         if (string.IsNullOrWhiteSpace(contentType))

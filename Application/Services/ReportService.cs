@@ -14,11 +14,17 @@ using Twitter.Domain.Database.SqlServer.Entities;
 
 namespace Application.Services;
 
+/// <summary>
+/// Servicio encargado de la gestión de reportes de contenido (denuncias) generados por los usuarios del sistema, así como de su moderación administrativa.
+/// </summary>
 public class ReportService(
     IUnitOfWork unitOfWork,
     IAuditService auditService,
     ILogger<ReportService> logger) : IReportService
 {
+    /// <summary>
+    /// Conjunto de tipos de entidades válidas que pueden ser objeto de un reporte.
+    /// </summary>
     private static readonly HashSet<string> ValidEntityTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         ReportConstants.ENTITY_TYPE_POST,
@@ -26,6 +32,9 @@ public class ReportService(
         ReportConstants.ENTITY_TYPE_MESSAGE
     };
 
+    /// <summary>
+    /// Conjunto de categorías válidas bajo las cuales se puede clasificar un reporte.
+    /// </summary>
     private static readonly HashSet<string> ValidCategories = new(StringComparer.OrdinalIgnoreCase)
     {
         ReportConstants.CATEGORY_SPAM,
@@ -40,6 +49,17 @@ public class ReportService(
 
     // === Público: usuarios normales ===
 
+    /// <summary>
+    /// Crea de forma asíncrona un nuevo reporte de contenido realizado por un usuario contra una entidad específica.
+    /// Valida que el tipo de entidad y la categoría sean correctos, previene reportes duplicados activos y determina la prioridad.
+    /// Si es un post y alcanza el umbral de reportes acumulados, lo marca automáticamente como advertido (IsFlagged).
+    /// </summary>
+    /// <param name="reporterUserId">Identificador único del usuario que realiza la denuncia.</param>
+    /// <param name="entityType">El tipo de entidad reportada (ej. "Post", "User", "Message").</param>
+    /// <param name="entityId">Identificador único de la entidad específica denunciada.</param>
+    /// <param name="category">La categoría o motivo de la denuncia.</param>
+    /// <param name="description">Detalle adicional opcional sobre el motivo de la denuncia.</param>
+    /// <returns>La representación DTO <see cref="ReportDto"/> del reporte creado.</returns>
     public async Task<ReportDto> CreateReportAsync(Guid reporterUserId, string entityType, Guid entityId, string category, string? description)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -113,11 +133,26 @@ public class ReportService(
         return ToDto(report);
     }
 
+    /// <summary>
+    /// Verifica de forma asíncrona si existe un reporte activo y pendiente del mismo usuario denunciante contra la misma entidad.
+    /// </summary>
+    /// <param name="reporterUserId">Identificador del usuario denunciante.</param>
+    /// <param name="entityType">Tipo de la entidad.</param>
+    /// <param name="entityId">Identificador de la entidad.</param>
+    /// <returns>True si el usuario ya cuenta con un reporte activo sobre dicha entidad; de lo contrario, False.</returns>
     public async Task<bool> HasActiveReportAsync(Guid reporterUserId, string entityType, Guid entityId)
     {
         return await unitOfWork.ContentReports.HasActiveReportAsync(reporterUserId, entityType, entityId);
     }
 
+    /// <summary>
+    /// Recupera de forma asíncrona todos los reportes individuales aplicados contra una entidad específica de forma paginada.
+    /// </summary>
+    /// <param name="entityType">Tipo de la entidad.</param>
+    /// <param name="entityId">Identificador único de la entidad.</param>
+    /// <param name="limit">Cantidad máxima de registros a recuperar.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <returns>Una lista de entidades <see cref="ContentReport"/>.</returns>
     public async Task<List<ContentReport>> GetReportsByEntityAsync(string entityType, Guid entityId, int limit = 0, int offset = 0)
     {
         return await unitOfWork.ContentReports.GetByEntityAsync(entityType, entityId, limit, offset);
@@ -127,6 +162,13 @@ public class ReportService(
     // === Admin: gestión ===
 
 
+    /// <summary>
+    /// Resuelve de forma asíncrona un reporte existente aplicándole el estado de resuelto y la resolución redactada por el moderador.
+    /// </summary>
+    /// <param name="reportId">Identificador del reporte a resolver.</param>
+    /// <param name="resolution">Detalle redactado por el administrador sobre las medidas tomadas.</param>
+    /// <param name="adminId">Identificador único del administrador que ejecuta la acción.</param>
+    /// <returns>La representación DTO actualizada del reporte resuelto.</returns>
     public async Task<ReportDto> ResolveReportAsync(Guid reportId, string? resolution, Guid adminId)
     {
         var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
@@ -145,6 +187,13 @@ public class ReportService(
         return ToDto(report);
     }
 
+    /// <summary>
+    /// Descarta de forma asíncrona un reporte existente marcándolo como descartado y guardando el motivo de dicha anulación.
+    /// </summary>
+    /// <param name="reportId">Identificador único del reporte a descartar.</param>
+    /// <param name="reason">Explicación del administrador sobre la decisión de desestimar el reporte.</param>
+    /// <param name="adminId">Identificador único del administrador que ejecuta la acción.</param>
+    /// <returns>La representación DTO actualizada del reporte descartado.</returns>
     public async Task<ReportDto> DismissReportAsync(Guid reportId, string? reason, Guid adminId)
     {
         var report = await unitOfWork.ContentReports.GetByIdAsync(reportId);
@@ -163,6 +212,14 @@ public class ReportService(
         return ToDto(report);
     }
 
+    /// <summary>
+    /// Obtiene de forma asíncrona una lista paginada de reportes para el panel de administración, permitiendo filtrar opcionalmente por estado.
+    /// Utiliza optimizaciones en lote para cargar posts y mensajes y resolver eficientemente la identidad del usuario denunciado sin consultas N+1.
+    /// </summary>
+    /// <param name="status">Estado opcional por el cual filtrar los reportes (ej. "Pendiente").</param>
+    /// <param name="limit">Cantidad máxima de reportes a recuperar.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <returns>Una respuesta genérica conteniendo la lista de DTOs <see cref="AdminReportDto"/> resultantes.</returns>
     public async Task<GenericResponse<List<AdminReportDto>>> GetReportsAsync(string? status = null, int limit = 0, int offset = 0)
     {
         List<ContentReport> reports;
@@ -253,6 +310,11 @@ public class ReportService(
         return new GenericResponse<List<AdminReportDto>> { Data = dtos };
     }
 
+    /// <summary>
+    /// Asistente privado estático que mapea un objeto de entidad de reporte <see cref="ContentReport"/> a su representación DTO <see cref="ReportDto"/>.
+    /// </summary>
+    /// <param name="report">La entidad del reporte a mapear.</param>
+    /// <returns>El DTO <see cref="ReportDto"/> mapeado.</returns>
     private static ReportDto ToDto(ContentReport report) => new()
     {
         ReportId = report.ReportId,
