@@ -400,7 +400,7 @@ public partial class TwitterDbContext : DbContext
 
             entity.Property(e => e.ChatbotMessageId).HasDefaultValueSql("(newid())");
             entity.Property(e => e.Role).HasMaxLength(20).IsRequired();
-            entity.Property(e => e.Content).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Content).HasColumnType("nvarchar(max)").IsRequired();
             entity.Property(e => e.Model).HasMaxLength(100);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
 

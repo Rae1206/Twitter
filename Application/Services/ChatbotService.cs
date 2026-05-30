@@ -164,9 +164,9 @@ public class ChatbotService(
         }
 
         var normalizedMessage = message.Trim();
-        if (normalizedMessage.Length > ChatbotConstants.MaxMessageLength)
+        if (normalizedMessage.Length > ChatbotConstants.MaxUserMessageLength)
         {
-            throw new BadRequestException($"El mensaje no puede exceder los {ChatbotConstants.MaxMessageLength} caracteres");
+            throw new BadRequestException($"El mensaje no puede exceder los {ChatbotConstants.MaxUserMessageLength} caracteres");
         }
 
         return normalizedMessage;

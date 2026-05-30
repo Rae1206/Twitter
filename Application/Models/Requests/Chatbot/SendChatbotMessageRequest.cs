@@ -7,6 +7,6 @@ public class SendChatbotMessageRequest
 {
     [Required(ErrorMessage = ValidationConstants.REQUIRED)]
     [MinLength(1, ErrorMessage = ValidationConstants.MIN_LENGTH)]
-    [MaxLength(ChatbotConstants.MaxMessageLength, ErrorMessage = ValidationConstants.MAX_LENGTH)]
+    [MaxLength(ChatbotConstants.MaxUserMessageLength, ErrorMessage = ValidationConstants.MAX_LENGTH)]
     public string Message { get; set; } = string.Empty;
 }
