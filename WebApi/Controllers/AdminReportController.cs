@@ -18,6 +18,12 @@ namespace WebApi.Controllers;
 public class AdminReportController(
     IReportService reportService) : ApiControllerBase
 {
+    /// <summary>
+    /// Obtiene una lista paginada de reportes pendientes de revisión.
+    /// </summary>
+    /// <param name="limit">Cantidad máxima de reportes a recuperar.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <returns>La lista paginada de reportes pendientes.</returns>
     [HttpGet("pending")]
     [RequirePermission(PermissionConstants.ReportsView)]
     [EndpointSummary("Obtener reportes pendientes")]
@@ -31,6 +37,12 @@ public class AdminReportController(
         return OkEnvelope(rsp);
     }
 
+    /// <summary>
+    /// Obtiene la lista completa e histórica de todos los reportes de contenido.
+    /// </summary>
+    /// <param name="limit">Cantidad máxima de reportes a recuperar.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <returns>La lista paginada de todos los reportes.</returns>
     [HttpGet("all")]
     [RequirePermission(PermissionConstants.ReportsView)]
     [EndpointSummary("Obtener todos los reportes")]
@@ -44,6 +56,12 @@ public class AdminReportController(
         return OkEnvelope(rsp);
     }
 
+    /// <summary>
+    /// Resuelve un reporte de contenido aplicando una resolución específica (ej. eliminando contenido).
+    /// </summary>
+    /// <param name="id">Identificador único del reporte a resolver.</param>
+    /// <param name="model">Modelo de solicitud con la descripción detallada de la resolución.</param>
+    /// <returns>Los detalles del reporte resuelto.</returns>
     [HttpPut("{id:guid}/resolve")]
     [RequirePermission(PermissionConstants.ReportsResolve)]
     [EndpointSummary("Resolver un reporte")]
@@ -60,6 +78,12 @@ public class AdminReportController(
         return OkEnvelope(report);
     }
 
+    /// <summary>
+    /// Desestima o descarta un reporte de contenido sin aplicar sanciones.
+    /// </summary>
+    /// <param name="id">Identificador único del reporte a desestimar.</param>
+    /// <param name="model">Modelo de solicitud con el motivo de desestimación.</param>
+    /// <returns>Los detalles del reporte desestimado.</returns>
     [HttpPut("{id:guid}/dismiss")]
     [RequirePermission(PermissionConstants.ReportsResolve)]
     [EndpointSummary("Rechazar/desestimar reporte")]
@@ -78,23 +102,23 @@ public class AdminReportController(
 }
 
 /// <summary>
-/// Petición para resolver un reporte.
+/// Modelo de solicitud para resolver un reporte de contenido en el panel de administración.
 /// </summary>
 public class ResolveReportRequest
 {
     /// <summary>
-    /// Descripción de la resolución aplicada.
+    /// Descripción de la resolución o acción de moderación aplicada al reporte.
     /// </summary>
     public string? Resolution { get; set; }
 }
 
 /// <summary>
-/// Petición para desestimar un reporte.
+/// Modelo de solicitud para desestimar o descartar un reporte de contenido.
 /// </summary>
 public class DismissReportRequest
 {
     /// <summary>
-    /// Razón por la cual se desestima el reporte.
+    /// Razón o justificación por la cual se desestima el reporte.
     /// </summary>
     public string? Reason { get; set; }
 }

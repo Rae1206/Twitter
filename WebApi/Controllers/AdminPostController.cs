@@ -23,6 +23,13 @@ public class AdminPostController(
     IAuditService _,
     IEmailService emailService) : ApiControllerBase
 {
+    /// <summary>
+    /// Obtiene una lista paginada de publicaciones para fines de moderación, con filtros opcionales de usuario creador.
+    /// </summary>
+    /// <param name="limit">Cantidad máxima de publicaciones a obtener.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <param name="userId">Filtro opcional por el identificador único del usuario autor.</param>
+    /// <returns>La lista paginada de publicaciones obtenidas.</returns>
     [HttpGet("list")]
     [RequirePermission(PermissionConstants.PostsView)]
     [EndpointSummary("Listar todas las publicaciones (Moderación)")]
@@ -36,6 +43,11 @@ public class AdminPostController(
         return OkEnvelope(rsp);
     }
 
+    /// <summary>
+    /// Marca una publicación específica con una bandera o advertencia de sospecha.
+    /// </summary>
+    /// <param name="id">Identificador único de la publicación a marcar.</param>
+    /// <returns>Una respuesta indicando el éxito de la operación.</returns>
     [HttpPost("{id:guid}/flag")]
     [RequirePermission(PermissionConstants.PostsFlag)]
     [EndpointSummary("Marcar publicación como sospechosa")]
@@ -59,6 +71,12 @@ public class AdminPostController(
         return SuccessEnvelope("Publicación marcada correctamente");
     }
 
+    /// <summary>
+    /// Realiza un borrado lógico de una publicación y opcionalmente envía un correo explicativo al autor.
+    /// </summary>
+    /// <param name="id">Identificador único de la publicación a eliminar.</param>
+    /// <param name="reason">Razón o motivo opcional de la eliminación de la publicación.</param>
+    /// <returns>Una respuesta indicando el éxito de la eliminación lógica.</returns>
     [HttpDelete("{id:guid}")]
     [RequirePermission(PermissionConstants.PostsDelete)]
     [AdminAudit("SOFT_DELETE_POST", "Post")]
@@ -91,6 +109,11 @@ public class AdminPostController(
         return SuccessEnvelope("Publicación eliminada correctamente");
     }
 
+    /// <summary>
+    /// Restaura una publicación que fue previamente eliminada por un administrador.
+    /// </summary>
+    /// <param name="id">Identificador único de la publicación a restaurar.</param>
+    /// <returns>Una respuesta indicando el éxito de la restauración de la publicación.</returns>
     [HttpPost("{id:guid}/restore")]
     [RequirePermission(PermissionConstants.PostsDelete)]
     [EndpointSummary("Restaurar publicación eliminada")]

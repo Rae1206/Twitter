@@ -16,6 +16,11 @@ namespace WebApi.Controllers;
 [Tags("Multimedia")]
 public class MediaController(IMediaService mediaService, IMediaStorageService storageService) : ApiControllerBase
 {
+    /// <summary>
+    /// Sube un archivo de imagen o video al sistema.
+    /// </summary>
+    /// <param name="file">El archivo multimedia enviado en el cuerpo del formulario (multipart/form-data).</param>
+    /// <returns>Los detalles de transferencia del archivo multimedia subido.</returns>
     [Authorize]
     [HttpPost("upload")]
     [EndpointSummary("Subir archivo multimedia")]
@@ -43,6 +48,12 @@ public class MediaController(IMediaService mediaService, IMediaStorageService st
         return OkEnvelope(result, "Archivo subido correctamente");
     }
 
+    /// <summary>
+    /// Recupera y devuelve un archivo multimedia almacenado utilizando su identificador único.
+    /// Si el archivo está en un almacenamiento externo, redirige al usuario.
+    /// </summary>
+    /// <param name="id">Identificador único del archivo multimedia.</param>
+    /// <returns>El flujo de datos del archivo multimedia o una redirección.</returns>
     [HttpGet("{id:guid}")]
     [EndpointSummary("Obtener archivo multimedia por ID")]
     [EndpointDescription("Obtiene o redirige al archivo multimedia solicitado.")]

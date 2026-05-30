@@ -21,6 +21,11 @@ public class PostController(
     ICommentService commentService,
     IRetweetService retweetService) : ApiControllerBase
 {
+    /// <summary>
+    /// Crea una nueva publicación para el usuario autenticado.
+    /// </summary>
+    /// <param name="model">Modelo que contiene el contenido de la publicación y configuraciones opcionales.</param>
+    /// <returns>La publicación creada con su ID correspondiente.</returns>
     [HttpPost("create")]
     [EndpointSummary("Crear una publicación")]
     [EndpointDescription("Crea una nueva publicación para el usuario autenticado.")]
@@ -34,6 +39,11 @@ public class PostController(
         return CreatedEnvelope(nameof(GetPostById), new { id = post.PostId }, post);
     }
 
+    /// <summary>
+    /// Genera sugerencias de texto para una publicación utilizando Inteligencia Artificial.
+    /// </summary>
+    /// <param name="model">Modelo de solicitud con parámetros o sugerencias de contexto para la IA.</param>
+    /// <returns>El texto sugerido por la IA.</returns>
     [HttpPost("generate-text")]
     [EndpointSummary("Generar texto sugerido con IA")]
     [EndpointDescription("Genera un texto sugerido para una publicación usando inteligencia artificial.")]
@@ -46,6 +56,11 @@ public class PostController(
         return OkEnvelope(generatedPost, "Texto sugerido generado correctamente");
     }
 
+    /// <summary>
+    /// Obtiene una lista paginada de publicaciones según los filtros especificados.
+    /// </summary>
+    /// <param name="model">Modelo de solicitud con parámetros de paginación y filtros.</param>
+    /// <returns>Una lista paginada de publicaciones.</returns>
     [AllowAnonymous]
     [HttpGet("list")]
     [EndpointSummary("Listar publicaciones")]
@@ -57,6 +72,11 @@ public class PostController(
         return OkEnvelope(rsp);
     }
 
+    /// <summary>
+    /// Obtiene una publicación específica por su identificador único.
+    /// </summary>
+    /// <param name="id">Identificador único de la publicación.</param>
+    /// <returns>Los detalles de la publicación solicitada.</returns>
     [AllowAnonymous]
     [HttpGet("{id:guid}")]
     [EndpointSummary("Obtener publicación por ID")]
@@ -69,6 +89,12 @@ public class PostController(
         return OkEnvelope(post);
     }
 
+    /// <summary>
+    /// Actualiza el contenido de una publicación existente.
+    /// </summary>
+    /// <param name="model">Modelo con el nuevo contenido para la publicación.</param>
+    /// <param name="id">Identificador único de la publicación a actualizar.</param>
+    /// <returns>La publicación actualizada.</returns>
     [HttpPut("{id:guid}/update")]
     [EndpointSummary("Actualizar publicación")]
     [EndpointDescription("Actualiza el contenido de una publicación existente del usuario autenticado.")]
@@ -82,6 +108,12 @@ public class PostController(
         return OkEnvelope(post);
     }
 
+    /// <summary>
+    /// Cambia el estado (de publicación a borrador o viceversa) de una publicación.
+    /// </summary>
+    /// <param name="id">Identificador único de la publicación.</param>
+    /// <param name="model">Modelo que especifica el nuevo estado de publicación.</param>
+    /// <returns>Una respuesta indicando el éxito del cambio de estado.</returns>
     [HttpPatch("{id:guid}/change-status")]
     [EndpointSummary("Cambiar estado de publicación")]
     [EndpointDescription("Cambia el estado (publicado/borrador) de una publicación del usuario autenticado.")]
@@ -95,6 +127,11 @@ public class PostController(
         return SuccessEnvelope("Estado de la publicación actualizado correctamente");
     }
 
+    /// <summary>
+    /// Elimina una publicación del usuario autenticado de forma lógica o física.
+    /// </summary>
+    /// <param name="id">Identificador único de la publicación a eliminar.</param>
+    /// <returns>Una respuesta indicando el éxito de la eliminación.</returns>
     [HttpDelete("{id:guid}/delete")]
     [EndpointSummary("Eliminar publicación")]
     [EndpointDescription("Elimina una publicación del usuario autenticado.")]
@@ -108,6 +145,11 @@ public class PostController(
         return SuccessEnvelope("Publicación eliminada correctamente");
     }
 
+    /// <summary>
+    /// Alterna el estado "Me gusta" (like) en una publicación específica.
+    /// </summary>
+    /// <param name="id">Identificador único de la publicación.</param>
+    /// <returns>Una respuesta indicando que la reacción fue procesada correctamente.</returns>
     [HttpPost("{id:guid}/like")]
     [EndpointSummary("Dar o quitar like")]
     [EndpointDescription("Alterna el like en una publicación. Si ya tiene like lo quita, si no lo agrega.")]
@@ -121,6 +163,12 @@ public class PostController(
         return SuccessEnvelope("Reacción de me gusta procesada correctamente");
     }
 
+    /// <summary>
+    /// Crea un comentario respondiendo a una publicación existente.
+    /// </summary>
+    /// <param name="id">Identificador único de la publicación que se comenta.</param>
+    /// <param name="model">Modelo con el contenido del comentario.</param>
+    /// <returns>La nueva publicación o comentario creado.</returns>
     [HttpPost("{id:guid}/comment")]
     [EndpointSummary("Comentar publicación")]
     [EndpointDescription("Crea un comentario en una publicación existente.")]
@@ -134,6 +182,12 @@ public class PostController(
         return CreatedEnvelope(nameof(GetPostById), new { id = post.PostId }, post);
     }
 
+    /// <summary>
+    /// Crea un retweet (republicación) de una publicación existente.
+    /// </summary>
+    /// <param name="id">Identificador único de la publicación a retuitear.</param>
+    /// <param name="model">Modelo que contiene comentarios opcionales (retweet con cita).</param>
+    /// <returns>El nuevo post que representa el retweet.</returns>
     [HttpPost("{id:guid}/retweet")]
     [EndpointSummary("Hacer retweet")]
     [EndpointDescription("Crea un retweet de una publicación existente.")]

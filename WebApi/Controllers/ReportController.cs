@@ -18,6 +18,11 @@ namespace WebApi.Controllers;
 public class ReportController(
     IReportService reportService) : ApiControllerBase
 {
+    /// <summary>
+    /// Permite a un usuario autenticado reportar una publicación, cuenta o mensaje por infracción de normas.
+    /// </summary>
+    /// <param name="model">Modelo de solicitud con el tipo de entidad, ID, categoría y descripción del reporte.</param>
+    /// <returns>El reporte creado.</returns>
     [HttpPost("create")]
     [EndpointSummary("Crear un reporte")]
     [EndpointDescription("Permite a un usuario autenticado reportar una publicación, cuenta o mensaje por infracción de normas.")]
@@ -42,9 +47,14 @@ public class ReportController(
              model.Category,
              model.Description);
 
-        return CreatedEnvelope(nameof(GetReportById), new { id = report.ReportId }, report);
-    }
+         return CreatedEnvelope(nameof(GetReportById), new { id = report.ReportId }, report);
+     }
 
+    /// <summary>
+    /// Obtiene un reporte propio específico por su identificador único.
+    /// </summary>
+    /// <param name="id">Identificador único del reporte.</param>
+    /// <returns>Los detalles del reporte si pertenece al usuario actual.</returns>
     [HttpGet("{id:guid}")]
     [EndpointSummary("Obtener reporte por ID")]
     [EndpointDescription("Obtiene un reporte propio específico por su identificador único.")]
@@ -66,6 +76,12 @@ public class ReportController(
         return OkEnvelope(ownReport);
     }
 
+    /// <summary>
+    /// Obtiene la lista de todos los reportes creados por el usuario autenticado.
+    /// </summary>
+    /// <param name="limit">Cantidad máxima de reportes a obtener.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <returns>La lista de reportes propios.</returns>
     [HttpGet("mine")]
     [EndpointSummary("Obtener mis reportes")]
     [EndpointDescription("Obtiene la lista de todos los reportes creados por el usuario autenticado.")]
@@ -79,6 +95,12 @@ public class ReportController(
         return OkEnvelope(mine ?? []);
     }
 
+    /// <summary>
+    /// Verifica si el usuario autenticado ya ha reportado previamente una entidad específica de forma activa.
+    /// </summary>
+    /// <param name="entityType">Tipo de la entidad reportada (ej. "Post", "User").</param>
+    /// <param name="entityId">Identificador único de la entidad reportada.</param>
+    /// <returns>Un valor booleano indicando si ya fue reportado previamente.</returns>
     [HttpGet("check")]
     [EndpointSummary("Verificar estado de reporte")]
     [EndpointDescription("Verifica si el usuario autenticado ya ha reportado previamente una entidad específica.")]
@@ -95,7 +117,7 @@ public class ReportController(
 }
 
 /// <summary>
-/// Petición para crear un reporte de contenido.
+/// Petición para crear un reporte de contenido por parte de un usuario.
 /// </summary>
 public class CreatePublicReportRequest
 {
@@ -105,17 +127,17 @@ public class CreatePublicReportRequest
     public string EntityType { get; set; } = null!;
 
     /// <summary>
-    /// ID de la entidad reportada.
+    /// Identificador único de la entidad reportada.
     /// </summary>
     public Guid EntityId { get; set; }
 
     /// <summary>
-    /// Categoría: "spam", "hate_speech", "harassment", "misinformation", "nudity", "violence", "copyright", "other".
+    /// Categoría del reporte: "spam", "hate_speech", "harassment", "misinformation", "nudity", "violence", "copyright", "other".
     /// </summary>
     public string Category { get; set; } = null!;
 
     /// <summary>
-    /// Descripción opcional o detalles del reporte.
+    /// Descripción opcional con detalles que justifican el reporte.
     /// </summary>
     public string? Description { get; set; }
 }

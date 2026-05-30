@@ -18,6 +18,10 @@ namespace WebApi.Controllers;
 public class AdminDashboardController(
     IDashboardService dashboardService) : ApiControllerBase
 {
+    /// <summary>
+    /// Obtiene métricas y estadísticas generales de uso y estado de la plataforma.
+    /// </summary>
+    /// <returns>Las métricas generales del sistema recopiladas.</returns>
     [HttpGet("stats")]
     [RequirePermission(PermissionConstants.DashboardView)]
     [EndpointSummary("Obtener estadísticas del sistema")]
@@ -31,6 +35,10 @@ public class AdminDashboardController(
         return OkEnvelope(rsp);
     }
 
+    /// <summary>
+    /// Fuerza la actualización y el recalculo manual de todas las estadísticas del sistema.
+    /// </summary>
+    /// <returns>Una respuesta indicando que el recalculo se completó correctamente.</returns>
     [HttpPost("recalculate")]
     [RequirePermission(PermissionConstants.DashboardView)]
     [EndpointSummary("Recalcular estadísticas")]

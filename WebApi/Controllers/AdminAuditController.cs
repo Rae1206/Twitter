@@ -18,6 +18,17 @@ namespace WebApi.Controllers;
 public class AdminAuditController(
     IAuditService auditService) : ApiControllerBase
 {
+    /// <summary>
+    /// Obtiene y filtra los registros o logs de auditoría generados por acciones administrativas.
+    /// </summary>
+    /// <param name="limit">Cantidad máxima de registros de auditoría a recuperar.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <param name="adminUserId">Filtro opcional por identificador de administrador ejecutor.</param>
+    /// <param name="action">Filtro opcional por el nombre o tipo de acción realizada.</param>
+    /// <param name="entityType">Filtro opcional por el tipo de entidad afectada (ej. "Post", "User").</param>
+    /// <param name="dateFrom">Filtro opcional para obtener registros desde esta fecha y hora.</param>
+    /// <param name="dateTo">Filtro opcional para obtener registros hasta esta fecha y hora.</param>
+    /// <returns>Una lista paginada con los logs de auditoría que coinciden con los criterios.</returns>
     [HttpGet("logs")]
     [RequirePermission(PermissionConstants.AuditView)]
     [EndpointSummary("Obtener registros de auditoría")]

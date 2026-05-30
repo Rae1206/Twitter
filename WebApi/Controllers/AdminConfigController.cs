@@ -19,6 +19,10 @@ public class AdminConfigController(
     IConfigService configService,
     IAuditService _) : ApiControllerBase
 {
+    /// <summary>
+    /// Obtiene la lista completa de configuraciones clave-valor del sistema.
+    /// </summary>
+    /// <returns>Una lista de todas las configuraciones del sistema.</returns>
     [HttpGet("all")]
     [RequirePermission(PermissionConstants.ConfigView)]
     [EndpointSummary("Obtener todas las configuraciones")]
@@ -32,6 +36,11 @@ public class AdminConfigController(
         return OkEnvelope(rsp);
     }
 
+    /// <summary>
+    /// Obtiene una configuración del sistema específica usando su clave única.
+    /// </summary>
+    /// <param name="key">La clave única de la configuración que se desea obtener.</param>
+    /// <returns>La configuración encontrada.</returns>
     [HttpGet("{key}")]
     [RequirePermission(PermissionConstants.ConfigView)]
     [EndpointSummary("Obtener configuración por clave")]
@@ -50,6 +59,12 @@ public class AdminConfigController(
         return OkEnvelope(config);
     }
 
+    /// <summary>
+    /// Modifica el valor de una configuración del sistema existente usando su clave única.
+    /// </summary>
+    /// <param name="key">La clave única de la configuración a modificar.</param>
+    /// <param name="model">El modelo con el nuevo valor para la configuración.</param>
+    /// <returns>La configuración con el valor actualizado.</returns>
     [HttpPut("{key}")]
     [RequirePermission(PermissionConstants.ConfigEdit)]
     [EndpointSummary("Actualizar configuración")]
@@ -67,12 +82,12 @@ public class AdminConfigController(
 }
 
 /// <summary>
-/// Modelo para actualizar una configuración.
+/// Modelo de solicitud para actualizar el valor de una configuración del sistema.
 /// </summary>
 public class UpdateConfigRequest
 {
     /// <summary>
-    /// Nuevo valor para la configuración.
+    /// Nuevo valor para la configuración clave-valor.
     /// </summary>
     public string Value { get; set; } = null!;
 }

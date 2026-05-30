@@ -11,6 +11,9 @@ using Twitter.Domain.Exceptions;
 
 namespace Application.Services;
 
+/// <summary>
+/// Servicio para gestionar avatares y fotos de perfil de los usuarios.
+/// </summary>
 public class AvatarService(
     IUnitOfWork unitOfWork,
     IMediaStorageService mediaStorageService,
@@ -19,6 +22,12 @@ public class AvatarService(
 {
     private const string AvatarFolder = "avatars";
 
+    /// <summary>
+    /// Sube y establece la foto de perfil para un usuario. Si ya tenía una anterior, intenta eliminarla del almacenamiento.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario.</param>
+    /// <param name="request">Datos de la petición que contienen el archivo multimedia y metadatos.</param>
+    /// <returns>Los detalles actualizados del usuario en forma de DTO.</returns>
     public async Task<UserDto> UploadProfilePhotoAsync(Guid userId, UploadMediaRequest request)
     {
         if (logger.IsEnabled(LogLevel.Information))
@@ -63,6 +72,11 @@ public class AvatarService(
         return MapToDto(user);
     }
 
+    /// <summary>
+    /// Obtiene la información de la foto de perfil actual de un usuario.
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario.</param>
+    /// <returns>Los metadatos y URL de la foto de perfil en forma de DTO.</returns>
     public async Task<UserProfilePhotoDto> GetProfilePhotoAsync(Guid userId)
     {
         var user = await unitOfWork.Users.GetByIdAsync(userId);
@@ -80,6 +94,10 @@ public class AvatarService(
         };
     }
 
+    /// <summary>
+    /// Valida que el archivo de foto de perfil cumpla con los límites de tamaño, extensión y tipo MIME permitidos.
+    /// </summary>
+    /// <param name="request">Datos que contienen el flujo y metadatos del archivo a validar.</param>
     private static void ValidateAvatarFile(UploadMediaRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.FileName))
@@ -118,6 +136,12 @@ public class AvatarService(
         }
     }
 
+    /// <summary>
+    /// Resuelve la URL pública para la foto de perfil del usuario, dependiendo del proveedor de almacenamiento (local o CDN/DigitalOcean).
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario.</param>
+    /// <param name="storagePath">Ruta interna en la que está guardada la foto.</param>
+    /// <returns>La URL final del recurso.</returns>
     private async Task<string> ResolveProfilePhotoUrlAsync(Guid userId, string storagePath)
     {
         var storageProvider = configuration["Storage:Provider"]?.ToLowerInvariant() ?? "local";
@@ -130,6 +154,11 @@ public class AvatarService(
         return $"/api/user/{userId}/avatar";
     }
 
+    /// <summary>
+    /// Mapea una entidad de tipo usuario a su correspondiente objeto DTO de transferencia.
+    /// </summary>
+    /// <param name="entity">Entidad de base de datos de usuario.</param>
+    /// <returns>El DTO mapeado.</returns>
     private static UserDto MapToDto(User entity) => new()
     {
         UserId = entity.UserId,

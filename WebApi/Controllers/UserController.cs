@@ -21,6 +21,11 @@ public class UserController(
     IAvatarService avatarService,
     IMediaStorageService mediaStorageService) : ApiControllerBase
 {
+    /// <summary>
+    /// Crea un nuevo usuario en el sistema.
+    /// </summary>
+    /// <param name="model">Modelo que contiene los datos del nuevo usuario a registrar.</param>
+    /// <returns>Los detalles del usuario creado.</returns>
     [HttpPost("create")]
     [EndpointSummary("Registrar usuario")]
     [EndpointDescription("Crea un nuevo usuario en el sistema.")]
@@ -30,8 +35,13 @@ public class UserController(
     {
         var user = await userService.Create(model);
         return CreatedEnvelope(nameof(GetUserById), new { id = user.UserId }, user);
-    }
+     }
 
+    /// <summary>
+    /// Obtiene una lista paginada de usuarios con filtros opcionales de nickname y correo.
+    /// </summary>
+    /// <param name="model">Modelo de consulta con los filtros y límites de paginación.</param>
+    /// <returns>La lista paginada de usuarios.</returns>
     [HttpGet("list")]
     [EndpointSummary("Listar usuarios")]
     [EndpointDescription("Obtiene una lista paginada de usuarios con filtros opcionales.")]
@@ -42,6 +52,11 @@ public class UserController(
         return OkEnvelope(rsp);
     }
 
+    /// <summary>
+    /// Obtiene la información detallada de un usuario por su identificador único.
+    /// </summary>
+    /// <param name="id">Identificador único del usuario a consultar.</param>
+    /// <returns>Los detalles del usuario solicitado.</returns>
     [HttpGet("{id:guid}")]
     [EndpointSummary("Obtener usuario por ID")]
     [EndpointDescription("Obtiene la información de un usuario por su identificador.")]
@@ -53,6 +68,11 @@ public class UserController(
         return OkEnvelope(user);
     }
 
+    /// <summary>
+    /// Actualiza los datos del perfil (apodo, biografía, etc.) del usuario autenticado actualmente.
+    /// </summary>
+    /// <param name="model">Modelo con la información de perfil actualizada.</param>
+    /// <returns>Los detalles actualizados del usuario.</returns>
     [Authorize]
     [HttpPut("me")]
     [EndpointSummary("Actualizar mi perfil")]
@@ -66,6 +86,11 @@ public class UserController(
         return OkEnvelope(user);
     }
 
+    /// <summary>
+    /// Sube o reemplaza la foto de perfil del usuario autenticado actualmente.
+    /// </summary>
+    /// <param name="file">El archivo de imagen enviado en el cuerpo de la petición (multipart/form-data).</param>
+    /// <returns>Los detalles actualizados de la foto de perfil del usuario.</returns>
     [Authorize]
     [HttpPost("me/avatar")]
     [EndpointSummary("Subir foto de perfil")]
@@ -94,6 +119,11 @@ public class UserController(
         return OkEnvelope(user, "Foto de perfil actualizada correctamente");
     }
 
+    /// <summary>
+    /// Permite al usuario autenticado cambiar su contraseña actual.
+    /// </summary>
+    /// <param name="model">Modelo de solicitud con la contraseña actual y la nueva contraseña.</param>
+    /// <returns>Una respuesta indicando el éxito del cambio de contraseña.</returns>
     [Authorize]
     [HttpPatch("change-password")]
     [EndpointSummary("Cambiar contraseña")]
@@ -108,6 +138,11 @@ public class UserController(
         return SuccessEnvelope("Contraseña actualizada correctamente");
     }
 
+    /// <summary>
+    /// Elimina un usuario de forma lógica en el sistema. Requiere permiso de administrador para eliminar.
+    /// </summary>
+    /// <param name="id">Identificador único del usuario a eliminar.</param>
+    /// <returns>Una respuesta indicando el éxito de la eliminación.</returns>
     [RequirePermission(PermissionConstants.UsersDelete)]
     [HttpDelete("{id:guid}/delete")]
     [EndpointSummary("Eliminar usuario")]
@@ -120,6 +155,10 @@ public class UserController(
         return SuccessEnvelope("Usuario eliminado correctamente");
     }
 
+    /// <summary>
+    /// Obtiene la información de perfil completa del usuario autenticado actualmente.
+    /// </summary>
+    /// <returns>La información de perfil del usuario actual.</returns>
     [Authorize]
     [HttpGet("me")]
     [EndpointSummary("Obtener mi perfil")]
@@ -133,6 +172,11 @@ public class UserController(
         return OkEnvelope(user);
     }
 
+    /// <summary>
+    /// Obtiene y retorna la foto de perfil de un usuario determinado, o redirige si es externa.
+    /// </summary>
+    /// <param name="id">Identificador único del usuario.</param>
+    /// <returns>El flujo del archivo de imagen o una redirección.</returns>
     [HttpGet("{id:guid}/avatar")]
     [EndpointSummary("Obtener foto de perfil")]
     [EndpointDescription("Obtiene la foto de perfil de un usuario. Redirige si es una URL externa.")]
@@ -157,8 +201,8 @@ public class UserController(
 
         try
         {
-            var stream = await mediaStorageService.GetFileStreamAsync(userPhoto.StoragePath!);
-            return File(stream, MediaContentTypeHelper.InferFromFileName(userPhoto.FileName!));
+            var stream = mediaStorageService.GetFileStreamAsync(userPhoto.StoragePath!);
+            return File(await stream, MediaContentTypeHelper.InferFromFileName(userPhoto.FileName!));
         }
         catch (FileNotFoundException)
         {
