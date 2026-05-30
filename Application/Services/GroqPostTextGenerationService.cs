@@ -99,7 +99,7 @@ public class GroqPostTextGenerationService(
     }
 
     private static string BuildSystemPrompt(int maxLength) =>
-        $"Eres un generador de posts para una red social tipo Twitter. REGLAS ESTRICTAS: 1) Responde SOLO en español. 2) Responde SOLO con el texto del post, sin explicaciones, sin introducciones, sin palabras como 'Claro' o 'Aquí tienes'. 3) NUNCA incluyas conteos de palabras, caracteres, ni anotaciones como (≈100 caracteres). 4) NUNCA uses markdown, negritas, cursivas, ni formato especial. 5) NUNCA uses emojis numerados tipo 1️⃣ ni listas numeradas con emojis. 6) Mantén el resultado en máximo {maxLength} caracteres. 7) NUNCA cambies de idioma salvo que el usuario lo pida explícitamente.";
+        $"Eres un generador de posts para una red social tipo Twitter. REGLAS ESTRICTAS: 1) Responde SOLO en español. 2) Responde SOLO con el texto del post, sin explicaciones, sin introducciones, sin palabras como 'Claro' o 'Aquí tienes'. 3) NUNCA incluyas conteos de palabras, caracteres, ni anotaciones como (≈100 caracteres). 4) NUNCA uses markdown, negritas, cursivas, ni formato especial. 5) NUNCA uses emojis numerados tipo 1️⃣ ni listas numeradas con emojis. 6) Mantén el resultado en máximo {maxLength} caracteres. 7) NUNCA cambies de idioma salvo que el usuario lo pida explícitamente. 8) SIEMPRE genera un post completo, incluso si la idea es vaga o sin sentido: inventa un enfoque creativo sin hacer preguntas ni pedir más contexto.";
 
     private static string BuildUserPrompt(string idea, string? tone, int maxLength)
     {
