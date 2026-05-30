@@ -2,24 +2,29 @@ using System;
 using System.Threading.Tasks;
 using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Constants;
 
 namespace WebApi.Controllers;
 
 /// <summary>
-/// Endpoint público para que usuarios autenticados reporten posts, cuentas o mensajes.
+/// Controlador público para que los usuarios autenticados reporten contenido.
 /// </summary>
 [Route("api/reports")]
 [ApiController]
 [Authorize]
+[Tags("Reportes")]
 public class ReportController(
     IReportService reportService) : ApiControllerBase
 {
-    /// <summary>
-    /// Reportar un post, cuenta o mensaje.
-    /// </summary>
     [HttpPost("create")]
+    [EndpointSummary("Crear un reporte")]
+    [EndpointDescription("Permite a un usuario autenticado reportar una publicación, cuenta o mensaje por infracción de normas.")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateReport([FromBody] CreatePublicReportRequest model)
     {
         var userId = GetRequiredCurrentUserId();
@@ -31,19 +36,21 @@ public class ReportController(
         }
 
         var report = await reportService.CreateReportAsync(
-            userId,
-            model.EntityType,
-            model.EntityId,
-            model.Category,
-            model.Description);
+             userId,
+             model.EntityType,
+             model.EntityId,
+             model.Category,
+             model.Description);
 
         return CreatedEnvelope(nameof(GetReportById), new { id = report.ReportId }, report);
     }
 
-    /// <summary>
-    /// Consultar un reporte propio por ID.
-    /// </summary>
     [HttpGet("{id:guid}")]
+    [EndpointSummary("Obtener reporte por ID")]
+    [EndpointDescription("Obtiene un reporte propio específico por su identificador único.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetReportById(Guid id)
     {
         var userId = GetRequiredCurrentUserId();
@@ -59,10 +66,11 @@ public class ReportController(
         return OkEnvelope(ownReport);
     }
 
-    /// <summary>
-    /// Listar mis reportes.
-    /// </summary>
     [HttpGet("mine")]
+    [EndpointSummary("Obtener mis reportes")]
+    [EndpointDescription("Obtiene la lista de todos los reportes creados por el usuario autenticado.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetMyReports([FromQuery] int limit = 0, [FromQuery] int offset = 0)
     {
         var userId = GetRequiredCurrentUserId();
@@ -71,10 +79,11 @@ public class ReportController(
         return OkEnvelope(mine ?? []);
     }
 
-    /// <summary>
-    /// Verificar si ya reporté una entidad.
-    /// </summary>
     [HttpGet("check")]
+    [EndpointSummary("Verificar estado de reporte")]
+    [EndpointDescription("Verifica si el usuario autenticado ya ha reportado previamente una entidad específica.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CheckReportStatus(
         [FromQuery] string entityType,
         [FromQuery] Guid entityId)
@@ -85,10 +94,13 @@ public class ReportController(
     }
 }
 
+/// <summary>
+/// Petición para crear un reporte de contenido.
+/// </summary>
 public class CreatePublicReportRequest
 {
     /// <summary>
-    /// Tipo de entidad: "Post", "User", "Message".
+    /// Tipo de entidad a reportar: "Post", "User", "Message".
     /// </summary>
     public string EntityType { get; set; } = null!;
 
@@ -98,13 +110,12 @@ public class CreatePublicReportRequest
     public Guid EntityId { get; set; }
 
     /// <summary>
-    /// Categoría: "spam", "hate_speech", "harassment", "misinformation",
-    /// "nudity", "violence", "copyright", "other".
+    /// Categoría: "spam", "hate_speech", "harassment", "misinformation", "nudity", "violence", "copyright", "other".
     /// </summary>
     public string Category { get; set; } = null!;
 
     /// <summary>
-    /// Descripción opcional del reporte.
+    /// Descripción opcional o detalles del reporte.
     /// </summary>
     public string? Description { get; set; }
 }

@@ -6,6 +6,9 @@ using Twitter.Domain.Interfaces.Services;
 
 namespace Infrastructure.Background;
 
+/// <summary>
+/// Servicio en segundo plano para limpiar archivos multimedia huérfanos que no están vinculados a ningún post.
+/// </summary>
 public class OrphanedMediaCleanupService : IHostedService, IDisposable
 {
     private readonly IServiceProvider _serviceProvider;

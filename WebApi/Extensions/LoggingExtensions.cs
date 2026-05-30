@@ -5,8 +5,12 @@ using Shared.Constants;
 
 namespace WebApi.Extensions;
 
+/// <summary>
+/// Extensiones para configurar Serilog con MongoDB.
+/// </summary>
 public static class LoggingExtensions
 {
+    /// <summary>Configura Serilog con escritura a consola y MongoDB (si está disponible).</summary>
     public static void ConfigureSerilog(this WebApplicationBuilder builder)
     {
         var mongoUrl = builder.Configuration.GetConnectionString(ConnectionStringNames.MongoDb);

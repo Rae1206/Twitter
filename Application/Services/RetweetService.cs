@@ -36,7 +36,7 @@ public class RetweetService(
             throw new ResourceNotFoundException("user", userId);
         }
 
-        // Resolve pure retweet to its source post to prevent recursive depth
+        // Resuelve retweets puros al post original para evitar recursividad
         var currentPost = targetPost;
         while (currentPost.RetweetOfPostId.HasValue && string.IsNullOrWhiteSpace(currentPost.Content))
         {
@@ -49,7 +49,7 @@ public class RetweetService(
         }
         var resolvedPostId = currentPost.PostId;
 
-        // Duplicate prevention for pure retweets
+        // Previene retweets puros duplicados
         if (string.IsNullOrWhiteSpace(model.Content))
         {
             var alreadyRetweeted = await unitOfWork.Posts.ExistsAsync(p => p.UserId == userId 

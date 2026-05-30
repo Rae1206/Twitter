@@ -179,7 +179,7 @@ public class ReportService(
 
         if (reports.Count > 0)
         {
-            // Batch-fetch posts to avoid N+1 queries
+            // Obtiene publicaciones en lote para evitar consultas N+1
             var postIds = reports
                 .Where(r => string.Equals(r.EntityType, ReportConstants.ENTITY_TYPE_POST, StringComparison.OrdinalIgnoreCase))
                 .Select(r => r.EntityId)
@@ -193,7 +193,7 @@ public class ReportService(
                 postsMap = posts.ToDictionary(p => p.PostId);
             }
 
-            // Batch-fetch messages to avoid N+1 queries
+            // Obtiene mensajes en lote para evitar consultas N+1
             var messageIds = reports
                 .Where(r => string.Equals(r.EntityType, ReportConstants.ENTITY_TYPE_MESSAGE, StringComparison.OrdinalIgnoreCase))
                 .Select(r => r.EntityId)

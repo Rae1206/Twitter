@@ -8,6 +8,10 @@ using WebApi.Extensions;
 
 namespace WebApi.Attributes;
 
+/// <summary>
+/// Filtro de autorización que verifica que el usuario tenga un permiso específico.
+/// Los permisos se cachean por 5 minutos.
+/// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequirePermissionAttribute : Attribute, IAuthorizationFilter
 {

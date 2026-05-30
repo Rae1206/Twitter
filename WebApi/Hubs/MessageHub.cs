@@ -36,6 +36,7 @@ public class MessageHub : Hub
     private static readonly Dictionary<string, HashSet<string>> _userConnections = new();
     private static readonly object _connectionsLock = new();
 
+    /// <summary>Registra la conexión del usuario y emite UserOnline si es la primera.</summary>
     public override async Task OnConnectedAsync()
     {
         var userId = Context.UserIdentifier;
@@ -83,6 +84,7 @@ public class MessageHub : Hub
         await base.OnConnectedAsync();
     }
 
+    /// <summary>Elimina la conexión del usuario y emite UserOffline si era la última.</summary>
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var userId = Context.UserIdentifier;

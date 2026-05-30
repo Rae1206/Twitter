@@ -5,6 +5,9 @@ using WebApi.Extensions;
 
 namespace WebApi.Filters;
 
+/// <summary>
+/// Filtro que registra acciones administrativas en el log de auditoría.
+/// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class AdminAuditAttribute : Attribute, IActionFilter
 {
@@ -19,19 +22,19 @@ public class AdminAuditAttribute : Attribute, IActionFilter
 
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        // No-op before action
+        // Sin acción antes de ejecutar
     }
 
     public void OnActionExecuted(ActionExecutedContext context)
     {
         if (context.Exception is not null)
         {
-            return; // Don't log failed actions
+            return; // No registrar acciones fallidas
         }
 
         if (!IsSuccessfulResult(context.Result))
         {
-            return; // Only log successful actions
+            return; // Solo registrar acciones exitosas
         }
 
         var adminId = context.HttpContext.User.TryGetUserId();
@@ -49,7 +52,7 @@ public class AdminAuditAttribute : Attribute, IActionFilter
         var ip = context.HttpContext.Connection.RemoteIpAddress?.ToString();
         var userAgent = context.HttpContext.Request.Headers.UserAgent.ToString();
 
-        // Try to extract entity ID from route values
+        // Intentar extraer el ID de la entidad desde los valores de ruta
         var entityId = context.RouteData.Values["id"]?.ToString();
 
         _ = Task.Run(async () =>
@@ -60,7 +63,7 @@ public class AdminAuditAttribute : Attribute, IActionFilter
             }
             catch
             {
-                // Silently fail audit logging
+                // Fallar silenciosamente el registro de auditoría
             }
         });
     }

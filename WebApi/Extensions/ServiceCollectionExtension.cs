@@ -36,7 +36,7 @@ public static class ServiceCollectionExtension
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // 1. DbContext con SQL Server ( Render用__)
+        // 1. DbContext con SQL Server (Render usa __ como separador)
         var connectionString = FirstNonEmpty(
             Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection"),
             configuration.GetConnectionString("DefaultConnection"),
@@ -115,7 +115,7 @@ public static class ServiceCollectionExtension
         // FluentValidation
         services.AddValidatorsFromAssemblyContaining<UploadMediaRequestValidator>();
 
-        // Storage provider selection: local (default) or digitalocean
+        // Selección de proveedor de almacenamiento: local (por defecto) o digitalocean
         var storageProvider = configuration["Storage:Provider"]?.ToLowerInvariant() ?? "local";
         if (storageProvider == "digitalocean")
         {
@@ -149,7 +149,7 @@ public static class ServiceCollectionExtension
     /// </summary>
     private static void AddJwtAuthentication(IServiceCollection services, IConfiguration configuration)
     {
-        // Cargar configuración JWT -优先环境变量 ( Render用__)
+        // Cargar configuración JWT — prioridad: variables de entorno (Render usa __)
         var issuer = Environment.GetEnvironmentVariable("Jwt__Issuer")
             ?? Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_ISSUER)
             ?? configuration[ConfigurationConstants.JWT_ISSUER]
@@ -226,6 +226,7 @@ public static class ServiceCollectionExtension
         services.AddAuthorization();
     }
 
+    /// <summary>Retorna el primer valor no vacío de la lista.</summary>
     private static string? FirstNonEmpty(params string?[] values) =>
         values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 }

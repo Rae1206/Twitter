@@ -6,6 +6,9 @@ using WebApi.Extensions;
 
 namespace WebApi.Attributes;
 
+/// <summary>
+/// Filtro de autorización que bloquea el acceso si el usuario está suspendido.
+/// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public class RequireNotSuspendedAttribute : Attribute, IAuthorizationFilter
 {
@@ -14,7 +17,7 @@ public class RequireNotSuspendedAttribute : Attribute, IAuthorizationFilter
         var user = context.HttpContext.User;
         if (!user.Identity?.IsAuthenticated ?? true)
         {
-            return; // Let [Authorize] handle unauthenticated
+            return; // Dejar que [Authorize] maneje los no autenticados
         }
 
         var userId = user.TryGetUserId();

@@ -28,7 +28,7 @@ public class SMTP
     /// <param name="isHtml">Indica si el cuerpo es HTML</param>
     public async Task SendEmailAsync(string to, string subject, string body, bool isHtml = false)
     {
-        //优先环境变量 ( Render用__)
+        // Prioriza variables de entorno (para Render)
         var host = Environment.GetEnvironmentVariable("SMTP__Host")
             ?? _configuration[ConfigurationConstants.SMTP_HOST]
             ?? throw new InvalidOperationException(ConfigurationConstants.SMTP_HOST);

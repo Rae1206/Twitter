@@ -1,5 +1,6 @@
 using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using WebApi.Attributes;
@@ -7,18 +8,24 @@ using WebApi.Hubs;
 
 namespace WebApi.Controllers;
 
+/// <summary>
+/// Controlador para gestionar los mensajes directos (DM) entre usuarios.
+/// </summary>
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
 [RequireNotSuspended]
+[Tags("Mensajes Directos")]
 public class MessageController(
     IMessageService messageService,
     IHubContext<MessageHub> hubContext) : ApiControllerBase
 {
-    /// <summary>
-    /// Enviar un mensaje directo
-    /// </summary>
     [HttpPost("send")]
+    [EndpointSummary("Enviar un mensaje directo")]
+    [EndpointDescription("Envía un mensaje privado a otro usuario y le notifica en tiempo real vía SignalR.")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SendMessage([FromBody] SendMessageDto request)
     {
         var currentUserId = GetRequiredCurrentUserId();
@@ -32,10 +39,11 @@ public class MessageController(
         return CreatedEnvelope(nameof(GetConversation), new { otherUserId = request.ReceiverId }, message, "Mensaje enviado correctamente");
     }
 
-    /// <summary>
-    /// Obtener conversación con un usuario
-    /// </summary>
     [HttpGet("conversation/{otherUserId:guid}")]
+    [EndpointSummary("Obtener conversación con un usuario")]
+    [EndpointDescription("Obtiene los mensajes intercambiados de forma paginada con otro usuario específico.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetConversation(Guid otherUserId, [FromQuery] int limit = 50, [FromQuery] int offset = 0)
     {
         var currentUserId = GetRequiredCurrentUserId();
@@ -43,10 +51,11 @@ public class MessageController(
         return OkEnvelope(messages);
     }
 
-    /// <summary>
-    /// Obtener lista de conversaciones (últimos mensajes con cada usuario)
-    /// </summary>
     [HttpGet("conversations")]
+    [EndpointSummary("Listar conversaciones")]
+    [EndpointDescription("Obtiene una lista de conversaciones activas con sus últimos mensajes recibidos o enviados.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetConversationsList([FromQuery] int limit = 20, [FromQuery] int offset = 0)
     {
         var currentUserId = GetRequiredCurrentUserId();
@@ -54,10 +63,11 @@ public class MessageController(
         return OkEnvelope(conversations);
     }
 
-    /// <summary>
-    /// Obtener cantidad de mensajes no leídos en una conversación específica
-    /// </summary>
     [HttpGet("conversation/{otherUserId:guid}/unread/count")]
+    [EndpointSummary("Obtener no leídos de una conversación")]
+    [EndpointDescription("Obtiene el número de mensajes no leídos de una conversación específica.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetUnreadCountInConversation(Guid otherUserId)
     {
         var currentUserId = GetRequiredCurrentUserId();
@@ -65,10 +75,11 @@ public class MessageController(
         return OkEnvelope(new { count });
     }
 
-    /// <summary>
-    /// Obtener mensajes no leídos
-    /// </summary>
     [HttpGet("unread")]
+    [EndpointSummary("Obtener mensajes no leídos")]
+    [EndpointDescription("Obtiene todos los mensajes no leídos del usuario autenticado.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetUnreadMessages()
     {
         var currentUserId = GetRequiredCurrentUserId();
@@ -76,10 +87,11 @@ public class MessageController(
         return OkEnvelope(messages);
     }
 
-    /// <summary>
-    /// Obtener cantidad total de mensajes no leídos
-    /// </summary>
     [HttpGet("unread/count")]
+    [EndpointSummary("Contar total de mensajes no leídos")]
+    [EndpointDescription("Obtiene el número total de mensajes no leídos acumulados de todas las conversaciones.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetUnreadCount()
     {
         var currentUserId = GetRequiredCurrentUserId();
@@ -87,10 +99,12 @@ public class MessageController(
         return OkEnvelope(new { count });
     }
 
-    /// <summary>
-    /// Marcar un mensaje como leído
-    /// </summary>
     [HttpPatch("{messageId:guid}/read")]
+    [EndpointSummary("Marcar mensaje como leído")]
+    [EndpointDescription("Marca un mensaje directo recibido como leído por su identificador.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MarkAsRead(Guid messageId)
     {
         var currentUserId = GetRequiredCurrentUserId();
@@ -98,10 +112,12 @@ public class MessageController(
         return SuccessEnvelope("Mensaje marcado como leído");
     }
 
-    /// <summary>
-    /// Marcar toda la conversación como leída
-    /// </summary>
     [HttpPatch("conversation/{otherUserId:guid}/read")]
+    [EndpointSummary("Marcar conversación como leída")]
+    [EndpointDescription("Marca todos los mensajes pendientes de una conversación con otro usuario como leídos.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MarkConversationAsRead(Guid otherUserId)
     {
         var currentUserId = GetRequiredCurrentUserId();
@@ -109,10 +125,12 @@ public class MessageController(
         return SuccessEnvelope("Conversación marcada como leída");
     }
 
-    /// <summary>
-    /// Eliminar un mensaje (soft delete para el usuario actual)
-    /// </summary>
     [HttpDelete("{messageId:guid}")]
+    [EndpointSummary("Eliminar un mensaje")]
+    [EndpointDescription("Realiza una eliminación lógica de un mensaje para el usuario actual.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteMessage(Guid messageId)
     {
         var currentUserId = GetRequiredCurrentUserId();
@@ -126,6 +144,13 @@ public class MessageController(
 /// </summary>
 public class SendMessageDto
 {
+    /// <summary>
+    /// ID del usuario receptor del mensaje.
+    /// </summary>
     public Guid ReceiverId { get; set; }
+
+    /// <summary>
+    /// Contenido de texto del mensaje.
+    /// </summary>
     public string Content { get; set; } = string.Empty;
 }

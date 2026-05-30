@@ -4,9 +4,13 @@ using WebApi.Hubs;
 
 namespace WebApi.Extensions;
 
+/// <summary>
+/// Extensiones para configurar el pipeline HTTP de la aplicación.
+/// </summary>
 public static class PipelineExtensions
 {
-public static void ConfigurePipeline(this WebApplication app)
+    /// <summary>Configura el pipeline completo: CORS, autenticación, rutas y OpenAPI.</summary>
+    public static void ConfigurePipeline(this WebApplication app)
     {
         // Necesario detrás de proxy (Render/Cloudflare) para respetar https real
         app.UseForwardedHeaders();

@@ -16,7 +16,7 @@ public static class AuthExtensions
     /// </summary>
     public static void AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        // Cargar configuración JWT -优先环境变量 ( Render用__)
+        // Cargar configuración JWT — prioridad: variables de entorno (Render usa __)
         var issuer = Environment.GetEnvironmentVariable("Jwt__Issuer")
             ?? Environment.GetEnvironmentVariable(ConfigurationConstants.JWT_ISSUER)
             ?? configuration[ConfigurationConstants.JWT_ISSUER]

@@ -5,6 +5,9 @@ using WebApi.Common;
 
 namespace WebApi.Middlewares;
 
+/// <summary>
+/// Middleware global de manejo de errores. Captura excepciones y devuelve respuestas estandarizadas.
+/// </summary>
 public class ErrorHandlerMiddleware
 {
     private readonly RequestDelegate _next;
@@ -18,6 +21,7 @@ public class ErrorHandlerMiddleware
         _logger = logger;
     }
 
+    /// <summary>Ejecuta el siguiente middleware y captura cualquier excepción no controlada.</summary>
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -40,6 +44,7 @@ public class ErrorHandlerMiddleware
         }
     }
 
+    /// <summary>Mapea la excepción al código HTTP y cuerpo de respuesta correspondiente.</summary>
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         var traceId = context.TraceIdentifier;
@@ -67,9 +72,11 @@ public class ErrorHandlerMiddleware
         await context.Response.WriteAsJsonAsync(response.Body);
     }
 
+    /// <summary>Construye la tupla (código HTTP, cuerpo de respuesta).</summary>
     private static (int StatusCode, GenericResponse<object?> Body) Build(int statusCode, string message, IEnumerable<string>? errors = null) =>
         (statusCode, ApiResponseFactory.Error(message, errors));
 
+    /// <summary>Aplana los errores de validación en una lista simple de strings.</summary>
     private static List<string> FlattenValidationErrors(ValidationException exception)
     {
         var errors = exception.Errors.Values.SelectMany(value => value).Where(value => !string.IsNullOrWhiteSpace(value)).ToList();

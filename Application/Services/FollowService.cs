@@ -58,7 +58,7 @@ public class FollowService(
             };
             unitOfWork.Create(follow);
 
-            // Update denormalized counts
+            // Actualiza los contadores desnormalizados
             follower.FollowingCount++;
             following.FollowersCount++;
             unitOfWork.Update(follower);
@@ -90,7 +90,7 @@ public class FollowService(
 
         unitOfWork.Delete(follow);
 
-        // Update denormalized counts
+        // Actualiza los contadores desnormalizados
         if (follower is not null)
         {
             follower.FollowingCount = Math.Max(0, follower.FollowingCount - 1);

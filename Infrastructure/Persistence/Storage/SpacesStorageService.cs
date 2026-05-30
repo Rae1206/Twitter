@@ -8,8 +8,8 @@ using Twitter.Domain.Interfaces.Services;
 namespace Infrastructure.Persistence.Storage;
 
 /// <summary>
-/// S3-compatible storage implementation for DigitalOcean Spaces.
-/// Stores media objects in a Spaces bucket and generates public CDN URLs.
+/// Implementación de almacenamiento compatible con S3 para DigitalOcean Spaces.
+/// Almacena objetos multimedia en un bucket de Spaces y genera URLs públicas de CDN.
 /// </summary>
 public class SpacesStorageService : IMediaStorageService
 {
@@ -130,7 +130,7 @@ public class SpacesStorageService : IMediaStorageService
             throw;
         }
 
-        // Copy S3 stream to a MemoryStream so the caller can dispose independently.
+        // Copia el flujo de S3 a un MemoryStream para que el llamador pueda liberarlo de forma independiente.
         var memoryStream = new MemoryStream();
         await response.ResponseStream.CopyToAsync(memoryStream);
         memoryStream.Position = 0;

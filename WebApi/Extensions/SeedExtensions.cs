@@ -6,6 +6,9 @@ using BCrypt.Net;
 
 namespace WebApi.Extensions;
 
+/// <summary>
+/// Extensiones para sembrar datos iniciales (roles, permisos, admin, config).
+/// </summary>
 public static class SeedExtensions
 {
     public static void SeedDefaultAdmin(this WebApplication app)
@@ -58,7 +61,7 @@ public static class SeedExtensions
         else
         {
             adminUser = existing;
-            // Reset to known-good state on every startup (dev/test seeding).
+            // Restaurar estado conocido en cada arranque (seed de dev/test).
             adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(DefaultUserConstants.AdminPassword);
             adminUser.IsActive = true;
             adminUser.IsSuspended = false;
@@ -166,7 +169,7 @@ public static class SeedExtensions
         // RolePermissions.AssignAsync hace un AnyAsync que va a DB.
         unitOfWork.SaveChangesAsync().GetAwaiter().GetResult();
 
-        // Assign all permissions to Admin and SuperAdmin roles.
+        // Asignar todos los permisos a los roles Admin y SuperAdmin.
         var adminRole = unitOfWork.Roles.GetByNameAsync(RoleConstants.Admin).GetAwaiter().GetResult();
         var superAdminRole = unitOfWork.Roles.GetByNameAsync(RoleConstants.SuperAdmin).GetAwaiter().GetResult();
         var moderatorRole = unitOfWork.Roles.GetByNameAsync(RoleConstants.Moderator).GetAwaiter().GetResult();
