@@ -22,7 +22,7 @@ public class ChatbotMessageRepository(TwitterDbContext context)
 
         return await _context.ChatbotMessages
             .Where(message => message.UserId == userId)
-            .OrderByDescending(message => message.CreatedAt)
+            .OrderBy(message => message.CreatedAt)
             .Skip(normalizedOffset)
             .Take(normalizedLimit)
             .ToListAsync(cancellationToken);
