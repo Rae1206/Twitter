@@ -29,6 +29,7 @@ public class UnitOfWork : IUnitOfWork
     public ILikeRepository Likes { get; }
     public IFollowRepository Follows { get; }
     public IMessageRepository Messages { get; }
+    public IChatbotMessageRepository ChatbotMessages { get; }
 
     public UnitOfWork(
         TwitterDbContext context,
@@ -48,7 +49,8 @@ public class UnitOfWork : IUnitOfWork
         IPostMediaRepository postMediaRepository,
         ILikeRepository likeRepository,
         IFollowRepository followRepository,
-        IMessageRepository messageRepository)
+        IMessageRepository messageRepository,
+        IChatbotMessageRepository chatbotMessageRepository)
     {
         _context = context;
         Users = userRepository;
@@ -68,6 +70,7 @@ public class UnitOfWork : IUnitOfWork
         Likes = likeRepository;
         Follows = followRepository;
         Messages = messageRepository;
+        ChatbotMessages = chatbotMessageRepository;
     }
 
     public void Create<T>(T entity) where T : class

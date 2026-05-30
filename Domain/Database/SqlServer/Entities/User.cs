@@ -52,4 +52,6 @@ public partial class User
     public virtual ICollection<Message> SentMessages { get; set; } = new List<Message>();
 
     public virtual ICollection<Message> ReceivedMessages { get; set; } = new List<Message>();
+
+    public virtual ICollection<ChatbotMessage> ChatbotMessages { get; set; } = new List<ChatbotMessage>();
 }

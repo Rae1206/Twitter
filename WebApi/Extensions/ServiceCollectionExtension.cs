@@ -78,6 +78,7 @@ public static class ServiceCollectionExtension
 
         services.AddScoped<IFollowRepository, FollowRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
+        services.AddScoped<IChatbotMessageRepository, ChatbotMessageRepository>();
 
         // 6. Servicios de Application
         services.AddScoped<IAuthService, AuthService>();
@@ -103,6 +104,13 @@ public static class ServiceCollectionExtension
         services.AddScoped<IAvatarService, AvatarService>();
         services.AddScoped<IFollowService, FollowService>();
         services.AddScoped<IMessageService, MessageService>();
+        services.AddHttpClient<IChatbotService, ChatbotService>((serviceProvider, client) =>
+        {
+            var groqBaseUrl = configuration[ConfigurationConstants.GROQ_BASE_URL] ?? "https://api.groq.com/openai/v1/";
+            client.BaseAddress = new Uri(groqBaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        });
 
         // FluentValidation
         services.AddValidatorsFromAssemblyContaining<UploadMediaRequestValidator>();

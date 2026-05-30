@@ -26,6 +26,7 @@ public interface IUnitOfWork
 
     IFollowRepository Follows { get; }
     IMessageRepository Messages { get; }
+    IChatbotMessageRepository ChatbotMessages { get; }
 
 
     void Create<T>(T entity) where T : class;

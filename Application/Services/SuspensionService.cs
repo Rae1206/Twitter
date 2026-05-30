@@ -1,4 +1,5 @@
 using Application.Interfaces.Services;
+using Application.Models.DTOs;
 using Application.Models.Responses;
 using Microsoft.Extensions.Logging;
 using Twitter.Domain.Exceptions;
@@ -15,7 +16,7 @@ public class SuspensionService(
     ICacheService cacheService,
     ILogger<SuspensionService> logger) : ISuspensionService
 {
-    public async Task<UserSuspension> SuspendAsync(Guid userId, Guid adminId, string suspensionType, string reason, DateTime? endsAt = null)
+    public async Task<SuspensionDto> SuspendAsync(Guid userId, Guid adminId, string suspensionType, string reason, DateTime? endsAt = null)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
@@ -60,10 +61,10 @@ public class SuspensionService(
             await emailService.SendAccountSuspendedAsync(user.Email, user.Nickname, reason, endsAt);
         }
 
-        return suspension;
+        return ToDto(suspension);
     }
 
-    public async Task<UserSuspension> LiftSuspensionAsync(Guid suspensionId, Guid liftedByUserId)
+    public async Task<SuspensionDto> LiftSuspensionAsync(Guid suspensionId, Guid liftedByUserId)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
@@ -97,12 +98,26 @@ public class SuspensionService(
             cacheService.Delete($"perm:{user.UserId}");
         }
 
-        return suspension;
+        return ToDto(suspension);
     }
 
-    public async Task<GenericResponse<List<UserSuspension>>> GetSuspensionHistoryAsync(Guid userId, int limit = 0, int offset = 0)
+    public async Task<GenericResponse<List<SuspensionDto>>> GetSuspensionHistoryAsync(Guid userId, int limit = 0, int offset = 0)
     {
         var query = await unitOfWork.UserSuspensions.GetAllAsync(limit, offset, s => s.UserId == userId);
-        return new GenericResponse<List<UserSuspension>> { Data = query };
+        return new GenericResponse<List<SuspensionDto>> { Data = query.Select(ToDto).ToList() };
     }
+
+    private static SuspensionDto ToDto(UserSuspension suspension) => new()
+    {
+        SuspensionId = suspension.SuspensionId,
+        UserId = suspension.UserId,
+        AdminUserId = suspension.AdminUserId,
+        SuspensionType = suspension.SuspensionType,
+        Reason = suspension.Reason,
+        EndsAt = suspension.EndsAt,
+        IsActive = suspension.IsActive,
+        LiftedByUserId = suspension.LiftedByUserId,
+        LiftedAt = suspension.LiftedAt,
+        CreatedAt = suspension.CreatedAt,
+    };
 }

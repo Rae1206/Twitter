@@ -50,6 +50,8 @@ public partial class TwitterDbContext : DbContext
 
     public virtual DbSet<Message> Messages { get; set; }
 
+    public virtual DbSet<ChatbotMessage> ChatbotMessages { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Post>(entity =>
@@ -387,6 +389,26 @@ public partial class TwitterDbContext : DbContext
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.ToTable("Messages");
+        });
+
+        modelBuilder.Entity<ChatbotMessage>(entity =>
+        {
+            entity.HasKey(e => e.ChatbotMessageId).HasName("PK_ChatbotMessages");
+
+            entity.HasIndex(e => e.UserId, "IX_ChatbotMessages_UserId");
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt }, "IX_ChatbotMessages_UserId_CreatedAt");
+
+            entity.Property(e => e.ChatbotMessageId).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Role).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Content).HasMaxLength(2000).IsRequired();
+            entity.Property(e => e.Model).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ChatbotMessages)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable("ChatbotMessages");
         });
 
         // Global query filters for soft delete + ephemeral expiry.

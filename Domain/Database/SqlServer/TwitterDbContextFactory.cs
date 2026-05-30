@@ -18,6 +18,7 @@ public class TwitterDbContextFactory : IDesignTimeDbContextFactory<TwitterDbCont
             .SetBasePath(webApiPath)
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile($"appsettings.{environmentName}.json", optional: true)
+            .AddJsonFile("secret.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables();
 
         TryAddUserSecrets(configurationBuilder);
