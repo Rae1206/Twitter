@@ -6,9 +6,20 @@ using Twitter.Domain.Interfaces.Repositories;
 
 namespace Infrastructure.Persistence.SqlServer.Repositories;
 
+/// <summary>
+/// Repositorio de base de datos encargado de la persistencia, consulta y almacenamiento del historial conversacional de los usuarios con el chatbot de IA.
+/// </summary>
 public class ChatbotMessageRepository(TwitterDbContext context)
     : GenericRepository<ChatbotMessage, Guid>(context), IChatbotMessageRepository
 {
+    /// <summary>
+    /// Obtiene de forma asíncrona el historial completo de mensajes entre el usuario y el chatbot, paginado y ordenado por fecha de creación (de más antiguo a más nuevo).
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario.</param>
+    /// <param name="limit">Cantidad máxima de mensajes a recuperar.</param>
+    /// <param name="offset">Cantidad de registros a omitir para la paginación.</param>
+    /// <param name="cancellationToken">Token de cancelación de la operación asíncrona.</param>
+    /// <returns>La lista de mensajes <see cref="ChatbotMessage"/> resultantes de la consulta.</returns>
     public async Task<List<ChatbotMessage>> GetHistoryAsync(
         Guid userId,
         int limit,
@@ -28,6 +39,14 @@ public class ChatbotMessageRepository(TwitterDbContext context)
             .ToListAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Recupera de forma asíncrona la lista de mensajes más recientes de la conversación de un usuario para contextualizar la llamada con el proveedor de IA.
+    /// Retorna los mensajes ordenados cronológicamente (antiguos a recientes).
+    /// </summary>
+    /// <param name="userId">Identificador único del usuario.</param>
+    /// <param name="limit">Límite de cantidad de mensajes contextuales.</param>
+    /// <param name="cancellationToken">Token de cancelación de la operación asíncrona.</param>
+    /// <returns>Lista de mensajes ordenados cronológicamente.</returns>
     public async Task<List<ChatbotMessage>> GetRecentConversationAsync(
         Guid userId,
         int limit,
