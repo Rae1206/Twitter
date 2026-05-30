@@ -97,7 +97,7 @@ public class GroqPostTextGenerationService(
     }
 
     private static string BuildSystemPrompt(int maxLength) =>
-        $"You write concise social media posts. Return only the final post text with no explanation, no surrounding quotes, and no markdown. Keep the result within {maxLength} characters.";
+        $"You write concise social media posts in Spanish only. Return only the final post text with no explanation, no surrounding quotes, and no markdown. Keep the result within {maxLength} characters. Never switch to another language unless the user explicitly asks for it inside the idea.";
 
     private static string BuildUserPrompt(string idea, string? tone, int maxLength)
     {
@@ -105,7 +105,7 @@ public class GroqPostTextGenerationService(
             ? "Tone: natural and engaging."
             : $"Tone: {tone.Trim()}.";
 
-        return $"Write one post based on this idea. {toneInstruction} Maximum length: {maxLength} characters. Idea: {idea}";
+        return $"Write one post in Spanish based on this idea. {toneInstruction} Maximum length: {maxLength} characters. Idea: {idea}";
     }
 
     private static string NormalizeIdea(string? idea)
