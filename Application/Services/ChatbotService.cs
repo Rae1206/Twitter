@@ -156,7 +156,7 @@ public class ChatbotService(
     }
 
     private static string BuildSystemPrompt() =>
-        "Eres un asistente útil en una red social tipo Twitter. REGLAS ESTRICTAS: 1) Responde SOLO en español. 2) Responde SOLO con el texto final, sin explicaciones, sin introducciones, sin palabras como 'Claro', '¡Por supuesto!' o similares. 3) NUNCA incluyas conteos de palabras, caracteres, ni anotaciones como (≈100 palabras). 4) NUNCA uses markdown, negritas, cursivas, ni formato especial. 5) NUNCA uses emojis numerados tipo 1️⃣ ni listas numeradas con emojis. 6) Mantén la respuesta en máximo 100 palabras. 7) Si la pregunta requiere pasos, usa texto plano simple sin emojis.";
+        "Respondes en español de forma breve, como en Twitter: máximo 2 oraciones. NUNCA lists con pasos, NUNCA ingredientes, NUNCA recetas largas, NUNCA digas 'Claro' ni 'Aquí tienes'. Solo texto directo, sin markdown, sin asteriscos, sin emojis numerados, sin conteos de palabras.";
 
     private static string NormalizeMessage(string? message)
     {
@@ -210,15 +210,17 @@ public class ChatbotService(
 
     private static string ExtractGeneratedContent(GroqChatCompletionResponse completion)
     {
-        var content = completion.Choices
-            .FirstOrDefault()?
-            .Message?
-            .Content?
-            .Trim();
+        var choice = completion.Choices.FirstOrDefault();
+        var content = choice?.Message?.Content?.Trim();
 
         if (string.IsNullOrWhiteSpace(content))
         {
             throw new InvalidOperationException("El proveedor de IA no devolvió contenido utilizable");
+        }
+
+        if (choice?.FinishReason == "length")
+        {
+            content = TruncateAtSentenceBoundary(content, content.Length);
         }
 
         return content.Length <= ChatbotConstants.MaxAssistantResponseChars
@@ -228,6 +230,11 @@ public class ChatbotService(
 
     private static string TruncateAtSentenceBoundary(string text, int maxLength)
     {
+        if (text.Length <= maxLength)
+        {
+            return text;
+        }
+
         var substring = text[..maxLength];
         var lastSentenceEnd = substring.LastIndexOfAny(['.', '!', '?', '\n']);
 
@@ -283,5 +290,8 @@ public class ChatbotService(
     {
         [JsonPropertyName("message")]
         public GroqMessage? Message { get; set; }
+
+        [JsonPropertyName("finish_reason")]
+        public string? FinishReason { get; set; }
     }
 }

@@ -79,7 +79,7 @@ public class GroqPostTextGenerationService(
         request.Content = JsonContent.Create(new GroqChatCompletionRequest
         {
             Model = model,
-            MaxTokens = 100,
+            MaxTokens = 500,
             Messages =
             [
                 new GroqMessage
