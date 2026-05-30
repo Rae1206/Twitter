@@ -154,7 +154,7 @@ public class ChatbotService(
     }
 
     private static string BuildSystemPrompt() =>
-        "You are a helpful AI assistant for a Twitter-like application. Reply in Spanish by default. Only switch to another language when the user explicitly asks for it in their own message. Use the provided conversation history to continue the thread naturally. Return only the assistant reply content with no surrounding markdown fences.";
+        $"You are a helpful AI assistant for a Twitter-like application. Reply in Spanish by default. Only switch to another language when the user explicitly asks for it in their own message. Use the provided conversation history to continue the thread naturally. Keep your response concise: at most 100 words. Return only the assistant reply content with no surrounding markdown fences.";
 
     private static string NormalizeMessage(string? message)
     {
@@ -219,7 +219,9 @@ public class ChatbotService(
             throw new InvalidOperationException("El proveedor de IA no devolvió contenido utilizable");
         }
 
-        return content;
+        return content.Length <= ChatbotConstants.MaxAssistantResponseChars
+            ? content
+            : content[..ChatbotConstants.MaxAssistantResponseChars].TrimEnd();
     }
 
     private static ChatbotMessageDto MapToDto(ChatbotMessage message)
