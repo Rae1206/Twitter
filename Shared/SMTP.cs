@@ -1,14 +1,13 @@
-using System.Net;
-using System.Net.Mail;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.Extensions.Configuration;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Shared.Constants;
+using MimeKit;
 
 namespace Shared;
 
 /// <summary>
-/// Utilidad para envío de emails mediante SMTP
+/// Utilidad para envío de emails mediante SMTP (usa MailKit)
 /// </summary>
 public class SMTP
 {
@@ -28,7 +27,6 @@ public class SMTP
     /// <param name="isHtml">Indica si el cuerpo es HTML</param>
     public async Task SendEmailAsync(string to, string subject, string body, bool isHtml = false)
     {
-        // Prioriza variables de entorno (para Render)
         var host = Environment.GetEnvironmentVariable("SMTP__Host")
             ?? _configuration[ConfigurationConstants.SMTP_HOST]
             ?? throw new InvalidOperationException(ConfigurationConstants.SMTP_HOST);
@@ -47,43 +45,24 @@ public class SMTP
 
         Console.WriteLine($"[SMTP] Host: {host}, Port: {port}, User: {user}, From: {from}");
 
-        // Puerto 587 usa STARTTLS, puerto 465 usa SSL implícito
-        bool useSsl = port == 465 || port == 587;
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(from, from));
+        message.To.Add(new MailboxAddress(to, to));
+        message.Subject = subject;
 
-        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-        ServicePointManager.ServerCertificateValidationCallback = ValidateServerCertificate;
+        message.Body = isHtml
+            ? new BodyBuilder { HtmlBody = body }.ToMessageBody()
+            : new TextPart("plain") { Text = body };
 
-        using var client = new SmtpClient(host, port)
-        {
-            Credentials = new NetworkCredential(user, password),
-            EnableSsl = useSsl,
-            DeliveryMethod = SmtpDeliveryMethod.Network
-        };
+        // Puerto 465 = SSL implícito, Puerto 587 = STARTTLS
+        var secureSocket = port == 465
+            ? SecureSocketOptions.SslOnConnect
+            : SecureSocketOptions.StartTls;
 
-        var mailMessage = new MailMessage
-        {
-            From = new MailAddress(from),
-            Subject = subject,
-            Body = body,
-            IsBodyHtml = isHtml
-        };
-
-        mailMessage.To.Add(to);
-
-        await client.SendMailAsync(mailMessage);
-    }
-
-    /// <summary>
-    /// Valida certificados SSL (temporal: acepta todos para testing)
-    /// </summary>
-    private static bool ValidateServerCertificate(
-        object sender,
-        X509Certificate? certificate,
-        X509Chain? chain,
-        SslPolicyErrors sslPolicyErrors)
-    {
-        // Para desarrollo: aceptar todos los certificados
-        // En producción, implementar validación apropiada
-        return true;
+        using var client = new MailKit.Net.Smtp.SmtpClient();
+        await client.ConnectAsync(host, port, secureSocket);
+        await client.AuthenticateAsync(user, password);
+        await client.SendAsync(message);
+        await client.DisconnectAsync(true);
     }
 }
