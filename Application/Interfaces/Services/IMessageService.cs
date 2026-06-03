@@ -17,6 +17,8 @@ public interface IMessageService
     Task<int> GetUnreadCount(Guid receiverId);
     Task<int> GetUnreadCountInConversation(Guid userId, Guid otherUserId);
     Task MarkAsRead(Guid messageId, Guid userId);
+    Task<MessageReadDto?> MarkAsReadWithReceipt(Guid messageId, Guid userId);
+    Task<MessageReadDto?> MarkConversationAsReadWithReceipt(Guid userId, Guid otherUserId);
     Task MarkConversationAsRead(Guid userId, Guid otherUserId);
     Task DeleteMessage(Guid messageId, Guid userId);
 }

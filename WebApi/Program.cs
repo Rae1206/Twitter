@@ -21,7 +21,20 @@ try
     builder.Configuration.AddJsonFile("secret.json", optional: true, reloadOnChange: true);
 
 // Configuración infraestructura
-    builder.Services.AddSignalR();
+    builder.Services.AddSignalR(options =>
+    {
+        // Habilitar detección de cambios automática para que los
+        // recibos de lectura se propaguen sin refresh manual.
+        options.EnableDetailedErrors = true;
+    })
+    .AddJsonProtocol(options =>
+    {
+        // Forzar camelCase en los payloads de SignalR para que coincida
+        // con el contracto que espera el frontend (MessageReadReceipt, MessageDto, etc.).
+        // Sin esto, SignalR serializa en PascalCase (.NET default) y el cliente
+        // no puede mapear las propiedades (messageId vs MessageId).
+        options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
     builder.Services.AddSingleton<IUserIdProvider, WebApi.Hubs.UserIdProvider>();
     builder.ConfigureSerilog();
     builder.Services.Configure<ForwardedHeadersOptions>(options =>

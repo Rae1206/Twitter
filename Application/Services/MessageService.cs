@@ -163,6 +163,48 @@ public class MessageService(
     }
 
     /// <summary>
+    /// Marca un mensaje como leído y devuelve el recibo de lectura para notificar al emisor vía SignalR.
+    /// </summary>
+    /// <param name="messageId">Identificador del mensaje.</param>
+    /// <param name="userId">Identificador del usuario que lee el mensaje (receptor).</param>
+    /// <returns>DTO con la información del recibo de lectura, o null si el mensaje no existe o ya estaba leído.</returns>
+    public async Task<MessageReadDto?> MarkAsReadWithReceipt(Guid messageId, Guid userId)
+    {
+        var message = await unitOfWork.Messages.MarkAsReadAsync(messageId);
+        if (message is null) return null;
+
+        await unitOfWork.SaveChangesAsync();
+
+        return new MessageReadDto
+        {
+            MessageId = message.MessageId,
+            ReadBy = userId,
+            SenderId = message.SenderId,
+            ReadAt = message.ReadAt!.Value
+        };
+    }
+
+    /// <summary>
+    /// Marca todos los mensajes de una conversación como leídos y devuelve un recibo de lectura para notificar al emisor.
+    /// </summary>
+    /// <param name="userId">Identificador del usuario que lee (receptor).</param>
+    /// <param name="otherUserId">Identificador del otro usuario (emisor).</param>
+    /// <returns>DTO con la información del recibo de lectura, o null si no había mensajes sin leer.</returns>
+    public async Task<MessageReadDto?> MarkConversationAsReadWithReceipt(Guid userId, Guid otherUserId)
+    {
+        await unitOfWork.Messages.MarkConversationAsReadAsync(userId, otherUserId);
+        await unitOfWork.SaveChangesAsync();
+
+        return new MessageReadDto
+        {
+            MessageId = null,
+            ReadBy = userId,
+            SenderId = otherUserId,
+            ReadAt = DateTimeHelper.UtcNow()
+        };
+    }
+
+    /// <summary>
     /// Marca de forma asíncrona todos los mensajes en una conversación específica como leídos.
     /// </summary>
     /// <param name="userId">Identificador del usuario destinatario.</param>

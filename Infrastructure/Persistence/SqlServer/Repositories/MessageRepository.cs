@@ -130,9 +130,10 @@ public class MessageRepository : GenericRepository<Message, Guid>, IMessageRepos
 
     /// <summary>
     /// Marca de forma asíncrona un mensaje individual específico como leído en la base de datos registrando la fecha de lectura.
+    /// Devuelve el mensaje marcado, o null si no existe o ya estaba leído.
     /// </summary>
     /// <param name="messageId">Identificador único del mensaje.</param>
-    public async Task MarkAsReadAsync(Guid messageId)
+    public async Task<Message?> MarkAsReadAsync(Guid messageId)
     {
         var message = await _context.Messages.FindAsync(messageId);
         if (message != null && !message.IsRead)
@@ -140,7 +141,9 @@ public class MessageRepository : GenericRepository<Message, Guid>, IMessageRepos
             message.IsRead = true;
             message.ReadAt = DateTimeHelper.UtcNow();
             _context.Messages.Update(message);
+            return message;
         }
+        return null;
     }
 
     /// <summary>

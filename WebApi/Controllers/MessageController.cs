@@ -131,7 +131,7 @@ public class MessageController(
     }
 
     /// <summary>
-    /// Marca un mensaje directo específico como leído.
+    /// Marca un mensaje directo específico como leído y notifica al emisor en tiempo real.
     /// </summary>
     /// <param name="messageId">Identificador único del mensaje.</param>
     /// <returns>Una respuesta indicando el éxito del marcado.</returns>
@@ -144,12 +144,22 @@ public class MessageController(
     public async Task<IActionResult> MarkAsRead(Guid messageId)
     {
         var currentUserId = GetRequiredCurrentUserId();
-        await messageService.MarkAsRead(messageId, currentUserId);
+        var receipt = await messageService.MarkAsReadWithReceipt(messageId, currentUserId);
+
+        if (receipt is not null)
+        {
+            // Notificar al emisor que su mensaje fue leído
+            await hubContext.Clients
+                .Group($"user-{receipt.SenderId}")
+                .SendAsync("MessageRead", receipt);
+        }
+
         return SuccessEnvelope("Mensaje marcado como leído");
     }
 
     /// <summary>
-    /// Marca todos los mensajes recibidos de una conversación con otro usuario como leídos.
+    /// Marca todos los mensajes recibidos de una conversación con otro usuario como leídos
+    /// y notifica al emisor en tiempo real.
     /// </summary>
     /// <param name="otherUserId">Identificador único del otro usuario de la conversación.</param>
     /// <returns>Una respuesta indicando el éxito de la operación.</returns>
@@ -162,7 +172,16 @@ public class MessageController(
     public async Task<IActionResult> MarkConversationAsRead(Guid otherUserId)
     {
         var currentUserId = GetRequiredCurrentUserId();
-        await messageService.MarkConversationAsRead(currentUserId, otherUserId);
+        var receipt = await messageService.MarkConversationAsReadWithReceipt(currentUserId, otherUserId);
+
+        if (receipt is not null)
+        {
+            // Notificar al emisor que sus mensajes fueron leídos
+            await hubContext.Clients
+                .Group($"user-{receipt.SenderId}")
+                .SendAsync("MessageRead", receipt);
+        }
+
         return SuccessEnvelope("Conversación marcada como leída");
     }
 

@@ -53,9 +53,10 @@ public interface IMessageRepository : IGenericRepository<Message, Guid>
 
     /// <summary>
     /// Marca de forma asíncrona un mensaje individual específico como leído en la base de datos.
+    /// Devuelve el mensaje marcado, o null si no existe o ya estaba leído.
     /// </summary>
     /// <param name="messageId">Identificador del mensaje.</param>
-    Task MarkAsReadAsync(Guid messageId);
+    Task<Message?> MarkAsReadAsync(Guid messageId);
 
     /// <summary>
     /// Marca de forma asíncrona todos los mensajes pendientes de lectura en una conversación con otro usuario como leídos.

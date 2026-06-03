@@ -7,11 +7,12 @@ namespace WebApi.Hubs;
 /// <summary>
 /// Hub de SignalR para mensajería en tiempo real.
 /// Eventos emitidos al cliente:
-///   - "ReceiveMessage" (MessageDto)        → cuando llega un mensaje nuevo
-///   - "UserOnline"     ({UserId,Nickname}) → SOLO cuando el userId pasa de 0 → 1 conexión
-///   - "UserOffline"    (string userId)     → SOLO cuando el userId pasa de 1 → 0 conexiones
-///   - "UserTyping"     (string senderId)   → typing indicator
-///   - "UserStopTyping" (string senderId)   → typing stop
+///   - "ReceiveMessage"  (MessageDto)        → cuando llega un mensaje nuevo
+///   - "MessageRead"     (MessageReadDto)     → cuando el receptor lee un mensaje o conversación
+///   - "UserOnline"      ({UserId,Nickname})  → SOLO cuando el userId pasa de 0 → 1 conexión
+///   - "UserOffline"     (string userId)      → SOLO cuando el userId pasa de 1 → 0 conexiones
+///   - "UserTyping"      (string senderId)    → typing indicator
+///   - "UserStopTyping"  (string senderId)    → typing stop
 ///
 /// Métodos invocables por el cliente:
 ///   - NotifyTyping(receiverId)       → fan-out a "user-{receiverId}"
@@ -22,10 +23,12 @@ namespace WebApi.Hubs;
 public class MessageHub : Hub
 {
     private readonly IUserService _userService;
+    private readonly IFollowService _followService;
 
-    public MessageHub(IUserService userService)
+    public MessageHub(IUserService userService, IFollowService followService)
     {
         _userService = userService;
+        _followService = followService;
     }
 
     /// <summary>
@@ -63,9 +66,11 @@ public class MessageHub : Hub
             {
                 // Resolver nickname una sola vez, fuera del lock, antes de emitir.
                 string nickname = "Usuario";
+                Guid parsedUserId;
                 try
                 {
-                    var user = await _userService.Get(Guid.Parse(userId));
+                    parsedUserId = Guid.Parse(userId);
+                    var user = await _userService.Get(parsedUserId);
                     if (user is not null && !string.IsNullOrWhiteSpace(user.Nickname))
                     {
                         nickname = user.Nickname;
@@ -74,10 +79,18 @@ public class MessageHub : Hub
                 catch
                 {
                     // Si no se puede resolver el usuario, mantenemos el fallback.
+                    parsedUserId = Guid.Empty;
                 }
 
                 var userInfo = new { UserId = userId, Nickname = nickname };
-                await Clients.Others.SendAsync("UserOnline", userInfo);
+                if (parsedUserId != Guid.Empty)
+                {
+                    var followerGroups = await GetOnlineFollowerGroups(parsedUserId);
+                    if (followerGroups.Count > 0)
+                    {
+                        await Clients.Groups(followerGroups).SendAsync("UserOnline", userInfo);
+                    }
+                }
             }
         }
 
@@ -109,7 +122,14 @@ public class MessageHub : Hub
 
             if (wasLastConnection)
             {
-                await Clients.Others.SendAsync("UserOffline", userId);
+                if (Guid.TryParse(userId, out var parsedUserId))
+                {
+                    var followerGroups = await GetOnlineFollowerGroups(parsedUserId);
+                    if (followerGroups.Count > 0)
+                    {
+                        await Clients.Groups(followerGroups).SendAsync("UserOffline", userId);
+                    }
+                }
             }
         }
 
@@ -166,6 +186,23 @@ public class MessageHub : Hub
         lock (_connectionsLock)
         {
             return _userConnections.TryGetValue(userId, out var connections) && connections.Count > 0;
+        }
+    }
+
+    /// <summary>
+    /// Obtiene los grupos SignalR de los seguidores del usuario que actualmente están en línea.
+    /// </summary>
+    private async Task<List<string>> GetOnlineFollowerGroups(Guid userId)
+    {
+        var followers = await _followService.GetFollowers(userId);
+
+        lock (_connectionsLock)
+        {
+            return followers
+                .Select(follower => follower.UserId.ToString())
+                .Where(followerId => _userConnections.ContainsKey(followerId))
+                .Select(followerId => $"user-{followerId}")
+                .ToList();
         }
     }
 }
